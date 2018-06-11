@@ -8,9 +8,9 @@ The original page of the website is ugly, and it is very cumbersome to use. Ever
 
 **My goals:  Do less, produce more results! Save our own time.**
 
-### :running: current version
+### :running: Current Version
 
-- v0.1.2
+**Beta**
 
 ### Features
 
