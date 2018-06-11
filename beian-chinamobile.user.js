@@ -1,25 +1,31 @@
 // ==UserScript==
 // @name			Xianda-移动集团工信部ip备案系统优化
-// @namespace		https://github.com/yuxianda/beian-chinamobile
-// @description		Beautify the web UI, simplify the functions. Do less, work out more!
+// @description		Beautify the web UI, simplify the functions. Do less, work out more! Who try who knows.
 // @author			Xianda
-// @grant			none
-// @icon			http://wx2.sinaimg.cn/large/679a709ely1frs5u2z5ibj205c05c3yd.jpg
-// @match			*://beian.chinamobile.com/*
-// @author			Xianda
-// @version		 	0.1
 // @create			2018-06-10
-// @lastmodified	2018-06-11
-// @note			2018-06-10-V0.1.0	支持查询
+// @version		 	0.1.2
+// @match			*://beian.chinamobile.com/*
+// @namespace		yuxianda.tl@139.com
+// @copyright		2018, Xianda
+// @lastmodified	2018-06-12
+// @feedback-url	https://greasyfork.org/zh-CN/scripts/369426
+// @note			2018-06-12-V0.1.2	更新 Userscript Header
 // @note			2018-06-11-V0.1.1	支持记录本地登陆信息
+// @note			2018-06-10-V0.1.0	支持查询
+// @homepage		https://github.com/yuxianda/beian-chinamobile
+// @icon			http://wx2.sinaimg.cn/large/679a709ely1frs5u2z5ibj205c05c3yd.jpg
+// @downloadURL		https://greasyfork.org/scripts/369426/code/Xianda-%E7%A7%BB%E5%8A%A8%E9%9B%86%E5%9B%A2%E5%B7%A5%E4%BF%A1%E9%83%A8ip%E5%A4%87%E6%A1%88%E7%B3%BB%E7%BB%9F%E4%BC%98%E5%8C%96.user.js
+// @run-at			document-body
+// @grant			none
 // ==/UserScript==
+
 (function() {
 	'use strict';
 
-	var devVersion = "0.1.1";
+	var devVersion = "0.1.2";
 
 	// Ajax 特效
-	$("body").append('<style>#load{position:absolute;top:0;bottom:0;left:0;right:0;z-index:200;}#load ._close{position:absolute;bottom:20px;left:0;height:50px;width:50px;font-size:100px;color:#000;cursor:pointer;line-height:50px;opacity:.2}.spinner{position:absolute;top:50%;left:50%;margin-top:-100px;margin-left:-300px;text-align:center}.spinner>div{width:200px;height:200px;background-color:#67CF22;border-radius:100%;display:inline-block;-webkit-animation:bouncedelay 1.4s infinite ease-in-out;animation:bouncedelay 1.4s infinite ease-in-out;-webkit-animation-fill-mode:both;animation-fill-mode:both}.spinner .bounce1{-webkit-animation-delay:-.32s;animation-delay:-.32s}.spinner .bounce2{-webkit-animation-delay:-.16s;animation-delay:-.16s}@-webkit-keyframes bouncedelay{0%,80%,100%{-webkit-transform:scale(0)}40%{-webkit-transform:scale(1)}}@keyframes bouncedelay{0%,80%,100%{transform:scale(0);-webkit-transform:scale(0)}40%{transform:scale(1);-webkit-transform:scale(1)}}</style><div id="load"><div class="_close" onclick="document.getElementById(&quot;load&quot;).style.display=&quot;none&quot;">×</div><div class="spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div></div>');
+	$("body").append('<style>#load{position:absolute;top:0;bottom:0;left:0;right:0;z-index:200;display:none}#load ._close{position:absolute;bottom:20px;left:0;height:50px;width:50px;font-size:100px;color:#000;cursor:pointer;line-height:50px;opacity:.2}.spinner{position:absolute;top:50%;left:50%;margin-top:-100px;margin-left:-300px;text-align:center}.spinner>div{width:200px;height:200px;background-color:#67CF22;border-radius:100%;display:inline-block;-webkit-animation:bouncedelay 1.4s infinite ease-in-out;animation:bouncedelay 1.4s infinite ease-in-out;-webkit-animation-fill-mode:both;animation-fill-mode:both}.spinner .bounce1{-webkit-animation-delay:-.32s;animation-delay:-.32s}.spinner .bounce2{-webkit-animation-delay:-.16s;animation-delay:-.16s}@-webkit-keyframes bouncedelay{0%,80%,100%{-webkit-transform:scale(0)}40%{-webkit-transform:scale(1)}}@keyframes bouncedelay{0%,80%,100%{transform:scale(0);-webkit-transform:scale(0)}40%{transform:scale(1);-webkit-transform:scale(1)}}</style><div id="load"><div class="_close" onclick="document.getElementById(&quot;load&quot;).style.display=&quot;none&quot;">×</div><div class="spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div></div>');
 	$(document).ajaxStart(function() {
 		$("#load").show();
 	}).ajaxStop(function() {
@@ -51,7 +57,6 @@
 	}
 
 	// 登录函数，本地自动登录
-
 	function login(username, password) {
 		myform.userName.value = username;
 		myform.password.value = password;
@@ -59,18 +64,9 @@
 
 	$(function() {
 
-		$("#load").hide();
-
 		// 移除header
 		document.getElementById("Container").style.marginTop = 0;
 		document.getElementsByClassName("header")[0].style.display = "none";
-		console.log("running...");
-
-		// 隐藏无用的导航链接
-/*var __uselessNav = [7,8,9,10];
-	for(var i in __uselessNav){
-		$(".nav li:eq("+__uselessNav[i]+")").hide();
-	}*/
 
 		// 隐藏左侧菜单
 		document.getElementById("NavBar").style.display = "none";
@@ -86,6 +82,7 @@
 		for (var i in __uselessLine) {
 			$("#major-content table tr:eq(" + __uselessLine[i] + ")").hide();
 		}
+
 		// 调整 备案状态 选项的位置
 		$("#major-content table tr:eq(1) td:eq(1)").append($("#major-content table tr:eq(1) td:eq(2)").text());
 		$("#major-content table tr:eq(1) td:eq(1)").append($("#major-content table tr:eq(1) td:eq(3) select"));
@@ -111,11 +108,11 @@
 		// 添加批量操作功能到当前页
 		$("#MainBody div:last").prepend('<div id="XiandaDiv" style="display: inline-block; float: left;"></div>');
 		$("#XiandaDiv").load("batch_fpxx_new.jhtml .yui-g");
+
 		// 隐藏上方的批量操作按钮
 		$("#major-content table tr:eq(8) td.value input")[2].style.display = "none";
 
 		// 替换默认的查询功能为无刷新查询
-
 		function querysubmit() {
 			//xda_search(document.getElementById());
 			if (FormIsValid() == false) {
@@ -132,19 +129,7 @@
 			});
 		}
 
-/*
-	function xda_search(ip_start,ip_end){
-		if(ip_end ==undefined){ip_end = ip_start;}
-		var _xianda_data = {ipStr_begin:ip_start,ipStr_end:ip_end,pSize:1000};
-		console.log("Searching...");
-		$("form[name='del_fm']").load("http://beian.chinamobile.com/ismmobile/ipbak/fp_xx_list.jhtml",_xianda_data);
-	}
-	*/
-
-
-
 		//获取指定form中的所有的<input>对象
-
 		function getElements(formId) {
 			//var form = document.getElementById(formId);
 			var form = formId;
@@ -163,8 +148,8 @@
 			}
 			return elements;
 		}
+		
 		//组合URL
-
 		function serializeElement(element) {
 			var method = element.tagName.toLowerCase();
 			var parameter;
@@ -172,20 +157,20 @@
 				parameter = [element.name, element.value];
 			}
 			switch (element.type.toLowerCase()) {
-			case 'submit':
-			case 'hidden':
-			case 'password':
-			case 'text':
-			case 'date':
-			case 'textarea':
-				parameter = [element.name, element.value];
-				break;
-			case 'checkbox':
-			case 'radio':
-				if (element.checked) {
+				case 'submit':
+				case 'hidden':
+				case 'password':
+				case 'text':
+				case 'date':
+				case 'textarea':
 					parameter = [element.name, element.value];
-				}
-				break;
+					break;
+				case 'checkbox':
+				case 'radio':
+					if (element.checked) {
+						parameter = [element.name, element.value];
+					}
+					break;
 			}
 			if (parameter) {
 				var key = encodeURIComponent(parameter[0]);
@@ -199,8 +184,8 @@
 				return results.join('&');
 			}
 		}
-		//调用方法
 
+		//调用方法
 		function serializeForm(formId) {
 			var elements = getElements(formId);
 			var queryComponents = new Array();
