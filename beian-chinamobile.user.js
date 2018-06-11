@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name			Xianda-移动集团工信部ip备案系统优化
-// @namespace		http://tampermonkey.net/
+// @namespace		https://github.com/yuxianda/beian-chinamobile
 // @description		Beautify the web UI, simplify the functions. Do less, work out more!
 // @author			Xianda
 // @grant			none
