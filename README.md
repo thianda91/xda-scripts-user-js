@@ -20,9 +20,9 @@ The original page of the website is ugly, and it is very cumbersome to use. Ever
 
 ### Usage
 
-- please use modern browers like Chrome, Firefox, Microsoft Edge
-- install tampermonkey add-on from [here](http://tampermonkey.net/)
-- click [here](https://greasyfork.org/scripts/369426/code/Xianda-%E7%A7%BB%E5%8A%A8%E9%9B%86%E5%9B%A2%E5%B7%A5%E4%BF%A1%E9%83%A8ip%E5%A4%87%E6%A1%88%E7%B3%BB%E7%BB%9F%E4%BC%98%E5%8C%96.user.js), if you got tampermonkey , it will be installed automatic.
+- Please use modern browers like Chrome, Firefox, Microsoft Edge
+- Install tampermonkey add-on from [here](http://tampermonkey.net/)
+- Click [here](https://greasyfork.org/scripts/369426/code/Xianda-%E7%A7%BB%E5%8A%A8%E9%9B%86%E5%9B%A2%E5%B7%A5%E4%BF%A1%E9%83%A8ip%E5%A4%87%E6%A1%88%E7%B3%BB%E7%BB%9F%E4%BC%98%E5%8C%96.user.js), if you got tampermonkey , it will be installed automatic.
 - Refresh the web page, enjoy it!
 
 ### Updates
