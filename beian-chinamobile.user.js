@@ -1,14 +1,14 @@
 // ==UserScript==
-// @name			Xianda-移动集团工信部ip备案系统优化
+// @name			Xianda-中国移动网站备案管理系统优化
 // @description		1.美化UI，响应式布局，消灭滚动条。2.整合为单页应用，无刷新，无跳转实现全部功能。3.后续会增加自动化功能，新增或修改后自动上报。
 // @author			Xianda
 // @create			2018-06-10
-// @version		 	0.1.5
+// @version		 	0.1.6
 // @match			*://beian.chinamobile.com/*
 // @namespace		beian-chinamobile
 // @license			MIT
 // @copyright		2018, Xianda
-// @lastmodified	2018-06-13
+// @lastmodified	2018-06-14
 // @feedback-url	https://greasyfork.org/zh-CN/scripts/369426
 // @note			2018-06-13-V0.1.5	调整布局，查询错误时支持显示错误提示
 // @note			2018-06-13-V0.1.4	首页提示脚本启用，新增防掉线功能，修复若干bugs
@@ -26,7 +26,7 @@
 (function() {
 	'use strict';
 
-	var devVersion = "0.1.5";
+	var devVersion = "0.1.6";
 
 	// Ajax 特效
 	$("body").append('<style>.head{background:#94aedb}#load{position:absolute;top:0;bottom:0;left:0;right:0;z-index:200;}#load ._close{position:absolute;bottom:20px;left:0;height:50px;width:50px;font-size:100px;color:#000;cursor:pointer;line-height:50px;opacity:.2}.spinner{position:absolute;top:50%;left:50%;margin-top:-100px;margin-left:-300px;text-align:center}.spinner>div{width:200px;height:200px;background-color:#67CF22;border-radius:100%;display:inline-block;-webkit-animation:bouncedelay 1.4s infinite ease-in-out;animation:bouncedelay 1.4s infinite ease-in-out;-webkit-animation-fill-mode:both;animation-fill-mode:both}.spinner .bounce1{-webkit-animation-delay:-.32s;animation-delay:-.32s}.spinner .bounce2{-webkit-animation-delay:-.16s;animation-delay:-.16s}@-webkit-keyframes bouncedelay{0%,80%,100%{-webkit-transform:scale(0)}40%{-webkit-transform:scale(1)}}@keyframes bouncedelay{0%,80%,100%{transform:scale(0);-webkit-transform:scale(0)}40%{transform:scale(1);-webkit-transform:scale(1)}}</style><div id="load"><div class="_close" onclick="document.getElementById(&quot;load&quot;).style.display=&quot;none&quot;">×</div><div class="spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div></div>');
@@ -105,8 +105,7 @@
 		}
 
 		// 调整 查询表单 的位置
-		$("#major-content table.t-detail tr:eq(1) td:eq(1)").append($("#major-content table.t-detail tr:eq(1) td:eq(2)").text());
-		$("#major-content table.t-detail tr:eq(1) td:eq(1)").append($("#major-content table.t-detail tr:eq(1) td:eq(3) select"));
+		$("#major-content table.t-detail tr:eq(1) td:eq(1)").append($("#major-content table.t-detail tr:eq(1) td:eq(2)").text()).append($("#major-content table.t-detail tr:eq(1) td:eq(3) select"));
 		$("#major-content table.t-detail tr:eq(1) td:eq(2)").html('<span style="color: #088bff;font-size: 14px;">UI优化：<a href="https://github.com/yuxianda" target="_blank">Xianda</a></span>');
 		//$("#major-content table.t-detail tr:eq(1) td:eq(3)").html($(".header .user").html());
 		//$("#major-content table.t-detail tr:eq(1) td:eq(3) .exit").css({"background":"url(../../images/v3/exit.gif) no-repeat","padding-left":"20px","color":"#102c93","margin":"0 20px"});
@@ -116,10 +115,6 @@
 		// 添加提示
 		$("#major-content table.t-detail tr:eq(4) td:eq(1)").html($("#major-content table.t-detail tr:eq(4) td:eq(1)").html().replace('格式：192.168.1.1', '<span style="color:red">结束ip留空，查询时会自动和起始ip相同</span>'));
 		$("#major-content table.t-detail tr:eq(4) td:eq(2)").text("");
-
-		// 添加参数，使单页最多显示1000条查询结果
-		$("#major-content table.t-detail tr:eq(7)").append('<td></td><td><input name="pSize" value="1000"></td>');
-		if(document.resultform) resultform.pSize.value = 1000;
 
 		// 取消搜索结果div的宽度限制
 		adjustDataTable();
@@ -173,15 +168,14 @@
 	// 替换默认的查询功能为无刷新查询
 	window.querysubmit = function() {
 		//xda_search(document.getElementById());
-		if (FormIsValid() == false) {
-			return;
-		}
+		if(FormIsValid() == false) return;
 		// 自动补全 ipStr_end
-		if (qvo_fm.ipStr_end.value == "") {
-			qvo_fm.ipStr_end.value = qvo_fm.ipStr_begin.value;
-		}
+		if(qvo_fm.ipStr_end.value == "") qvo_fm.ipStr_end.value = qvo_fm.ipStr_begin.value;
+		// 添加参数，使单页最多显示1000条查询结果
+		$("#major-content table.t-detail tr:eq(7)").append('<td></td><td><input name="pSize" value="200"></td>');
+		if(document.resultform) resultform.pSize.value = 200;
 		var searchUrl = "http://beian.chinamobile.com/ismmobile/ipbak/fp_xx_list.jhtml #MainBody";
-		if(document.getElementById("xda_temp")==undefined){$("body").append('<div id="xda_temp" style="display:none;"></div>');}
+		if(document.getElementById("xda_temp")==undefined) $("body").append('<div id="xda_temp" style="display:none;"></div>');
 		$("#xda_temp").load(searchUrl,serializeForm(qvo_fm),function(data){
 			//var noticeReg = /\('NoticeBox[12]'\)" class="close">\[X\]<\/span><p style="text-align:left;">(.+)<b/;
 			var xda_data = data.replace(/[\t\r\n]/g,"");
@@ -193,7 +187,7 @@
 			}else{
 				$("#Main #major-content form[name='del_fm']").replaceWith($("#xda_temp form[name='del_fm']"));
 				$("#Main #major-content #page form").replaceWith($("#xda_temp #page form"));
-				adjustDataTable();
+				setTimeout(adjustDataTable,0);
 			}
 			$("#xda_temp").remove();
 		});
