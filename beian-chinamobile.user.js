@@ -3,13 +3,14 @@
 // @description		本脚本用于beian.chinamobile.com界面优化。1.美化UI，响应式布局，消灭滚动条。2.整合为单页应用，无刷新查询，无跳转实现批量上传（左下角）。3.后续会增加自动化功能，新增或修改后自动上报。
 // @author			Xianda
 // @create			2018-06-10
-// @version			0.3.3
+// @version			0.4.0
 // @match			*://beian.chinamobile.com/*
 // @namespace		beian-chinamobile
 // @license			MIT
 // @copyright		2018, Xianda
-// @lastmodified	2018-06-22
+// @lastmodified	2018-06-24
 // @feedback-url	https://greasyfork.org/zh-CN/scripts/369426
+// @note			2018-06-24-V0.4.0	完善无刷新操作功能：删除、还原、上报
 // @note			2018-06-21-V0.3.2	修复bug
 // @note			2018-06-19-V0.2.0	测试脚本无法自动更新
 // @note			2018-06-13-V0.1.7	修复bug
@@ -29,7 +30,7 @@
 (function() {
 	'use strict';
 
-	var devVersion = "0.3.3";
+	var devVersion = "0.4.0";
 
 	// Ajax 特效
 	$("body").append('<style>.head{background:#94aedb}#load{position:absolute;top:0;bottom:0;left:0;right:0;z-index:200;}#load ._close{position:absolute;bottom:20px;left:0;height:50px;width:50px;font-size:100px;color:#000;cursor:pointer;line-height:50px;opacity:.2}.spinner{position:absolute;top:50%;left:50%;margin-top:-100px;margin-left:-300px;text-align:center}.spinner>div{width:200px;height:200px;background-color:#67CF22;border-radius:100%;display:inline-block;-webkit-animation:bouncedelay 1.4s infinite ease-in-out;animation:bouncedelay 1.4s infinite ease-in-out;-webkit-animation-fill-mode:both;animation-fill-mode:both}.spinner .bounce1{-webkit-animation-delay:-.32s;animation-delay:-.32s}.spinner .bounce2{-webkit-animation-delay:-.16s;animation-delay:-.16s}@-webkit-keyframes bouncedelay{0%,80%,100%{-webkit-transform:scale(0)}40%{-webkit-transform:scale(1)}}@keyframes bouncedelay{0%,80%,100%{transform:scale(0);-webkit-transform:scale(0)}40%{transform:scale(1);-webkit-transform:scale(1)}}</style><div id="load"><div class="_close" onclick="document.getElementById(&quot;load&quot;).style.display=&quot;none&quot;">×</div><div class="spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div></div>');
@@ -46,7 +47,7 @@
 		if (document.myform && myform.action.match("/user/login.jhtml")) {
 			//$("td[colspan=3]:first").removeAttr("colspan").after("<td colspan=2><b style='color:green'>已启用优化，登录后享受！</b></td>");
 			//$("table table table tr:eq(1)").append("<td>V"+devVersion+"</td>");
-			$("a.more").after('<div style="float:right;color:#fff;background-color:#000;margin-right:160px;padding:0 10px;">已启动优化,登录后查看！(V'+devVersion+')</div>')
+			$("a.more").after('<div style="float:right;color:#fff;background-color:#000;margin-right:160px;padding:0 10px;">已启动优化,登录后查看！(V'+devVersion+')</div>');
 			myform.userType.value = 2;
 			window.myclick = function() {
 				localStorage.setItem("xda_username", myform.userName.value);
@@ -68,37 +69,39 @@
 			return;
 		}
 
-		// 自动跳转到查询页
-		if (location.href.match("//beian.chinamobile.com/ismmobile/index/index.jhtml")) {
-			location.href = "/ismmobile/ipbak/fp_xx_list.jhtml";
-			return;
-		}
-
 		// 登录函数，本地自动登录
 		function login(username, password) {
 			myform.userName.value = username;
 			myform.password.value = password;
 		}
-
-		// 移除header
-		//document.getElementById("Container").style.marginTop = 0;
-		//document.getElementsByClassName("header")[0].style.display = "none";
-		document.getElementById("Container").style.marginTop = "70px";
-		document.getElementsByClassName("header")[0].style.zIndex = "-1";
-
-		// 隐藏左侧菜单
-		document.getElementById("NavBar").style.display = "none";
-
-		// 扩展显示主div到左侧边缘
-		document.getElementById("MainBody").style.marginLeft = 0;
-
-		// 去除子标题
-		document.getElementsByClassName("subtitle")[0].style.display = "none";
-
+		
+		// 自动跳转到查询页
+		if (location.href.match("//beian.chinamobile.com/ismmobile/index/index.jhtml")) {
+			location.href = "/ismmobile/ipbak/fp_xx_list.jhtml";
+			return;
+		}
+		
 		// 若不是查询页则结束执行
 		if(!location.href.match("ipbak/fp_xx_list.jhtml")){
 			return;
 		}
+		
+		// 调整header
+		//document.getElementById("Container").style.marginTop = 0;
+		//document.getElementsByClassName("header")[0].style.display = "none";
+		document.getElementById("Container").style.marginTop = "70px";
+		document.getElementsByClassName("header")[0].style.zIndex = "-1";
+		
+		// 去除子标题
+		//document.getElementsByClassName("subtitle")[0].style.display = "none";
+		$(".subtitle").remove();
+
+		// 隐藏左侧菜单
+		//document.getElementById("NavBar").style.display = "none";
+		$("#NavBar").remove();
+
+		// 扩展显示主div到左侧边缘
+		document.getElementById("MainBody").style.marginLeft = 0;
 
 		// ip查询页(fp_xx_list.jhtml) 隐藏不常用的条件输入框
 		//if(location.pathname.indexOf("ismmobile/ipbak/fp_xx_list.jhtml")>0){
@@ -142,8 +145,9 @@
 		});
 
 		// 隐藏上方的批量操作按钮
-		$("#major-content table tr:eq(8) td.value input")[2].style.display = "none";
-
+		//$("#major-content table tr:eq(8) td.value input")[2].style.display = "none";
+		$("#major-content table tr:eq(8) td.value input:eq(2)").remove();
+		
 		// 防掉线
 		$("#major-content form[name='qvo_fm'] td:last").prepend('<button id="prevDown" class="button" data-txt="no">开启防掉线</button>');
 		$("#prevDown").bind("click",function(){
@@ -158,11 +162,6 @@
 			$(this).attr("data-txt",tpl[_status][0]);
 			return false;
 		});
-
-		// 删除 fp_xx_delete
-
-		// 上报 fp_xx_upload
-
 
 	});
 
@@ -184,7 +183,32 @@
 		var _htmlHeight = document.documentElement ? document.documentElement.clientHeight : document.body.clientHeight;
 		del_fm.style.height = _htmlHeight - 70 - qvo_fm.clientHeight - 55 - 33 - 20 - 10 + "px";
 	}
-
+	
+	// 后台静默post提交
+	window.silencePost = function(url,formName){
+		var searchUrl = url + " #MainBody";
+		if(document.getElementById("xda_temp")==undefined) $("body").append('<div id="xda_temp" style="display:none;"></div>');
+		$("#xda_temp").load(searchUrl,serializeForm(formName),function(data){
+			//var noticeReg = /\('NoticeBox[12]'\)" class="close">\[X\]<\/span><p style="text-align:left;">(.+)<b/;
+			var xda_data = data.replace(/[\t\r\n]/g,"");
+			var result = xda_data.match(/<div id="(NoticeBox[0-9])".+<\/p><\/div>/);
+			if(result){
+				$("#"+result[1]).remove();
+				$("#major-content").before(result[0]);
+				$(".msg-box").css({"position":"absolute","left":"480px","top":"10px","width":"350px"});
+			}
+			$("#Main #major-content form[name='del_fm']").replaceWith($("#xda_temp form[name='del_fm']"));
+			$("#Main #major-content #page form").replaceWith($("#xda_temp #page form"));
+			setTimeout(adjustDataTable,0);
+			$("#xda_temp").remove();
+		});
+		/*var searchUrl = url + " form[name='del_fm'] div";
+		$("form[name='del_fm']").load(searchUrl, serializeForm(qvo_fm), function() {
+			document.getElementById("data_table").width = "100%";
+			del_fm.childNodes[1].style.width = "";
+		});*/
+	}
+	
 	// 替换默认的查询功能为无刷新查询
 	window.querysubmit = function() {
 		//xda_search(document.getElementById());
@@ -194,43 +218,61 @@
 		// 添加参数，使单页最多显示1000条查询结果
 		$("#major-content table.t-detail tr:eq(7)").append('<td></td><td><input name="pSize" value="200"></td>');
 		if(document.resultform) resultform.pSize.value = 200;
-		var searchUrl = "http://beian.chinamobile.com/ismmobile/ipbak/fp_xx_list.jhtml #MainBody";
-		if(document.getElementById("xda_temp")==undefined) $("body").append('<div id="xda_temp" style="display:none;"></div>');
-		$("#xda_temp").load(searchUrl,serializeForm(qvo_fm),function(data){
-			//var noticeReg = /\('NoticeBox[12]'\)" class="close">\[X\]<\/span><p style="text-align:left;">(.+)<b/;
-			var xda_data = data.replace(/[\t\r\n]/g,"");
-			window.aaa=xda_data;
-			var result = xda_data.match(/<div id="NoticeBox.+<\/p><\/div>/);
-			if(result){
-				$("#major-content").before(result[0]);
-				$(".msg-box").css({"position":"absolute","left":"480px","top":"10px","width":"350px"});
-			}else{
-				$("#Main #major-content form[name='del_fm']").replaceWith($("#xda_temp form[name='del_fm']"));
-				$("#Main #major-content #page form").replaceWith($("#xda_temp #page form"));
-				setTimeout(adjustDataTable,0);
-			}
-			$("#xda_temp").remove();
-		});
-
-		/*var searchUrl = "http://beian.chinamobile.com/ismmobile/ipbak/fp_xx_list.jhtml form[name='del_fm'] div";
-		$("form[name='del_fm']").load(searchUrl, serializeForm(qvo_fm), function() {
-			document.getElementById("data_table").width = "100%";
-			del_fm.childNodes[1].style.width = "";
-		});*/
+		silencePost("fp_xx_list.jhtml", qvo_fm);
 	}
 
-	// 替换默认的查询功能为无刷新查询
-	window.querysubmit = function() {
-
+	// 替换默认的删除功能为无刷新操作
+	window.delsubmit = function() {
+		var selid=document.getElementsByName("sel");
+		var check=false;
+		for (var i=0;i<selid.length;i++){
+			if(selid[i].checked){
+				check=true;
+				}
+		}
+		if(check==false){
+			alert('请选中之后再删除!');
+			return;
+		}
+		if(confirm("确定要删除信息吗？")){
+			silencePost("fp_xx_delete.jhtml", del_fm);
+		}
 	}
 
-	// 替换默认的查询功能为无刷新查询
-	window.querysubmit = function() {
-
+	// 替换默认的还原功能为无刷新操作
+	window.backsubmit = function() {
+		var selid=document.getElementsByName("sel_back");
+		var check=false;
+		for (var i=0;i<selid.length;i++){
+			if(selid[i].checked){
+				check=true;
+				}
+		}
+		if(check==false){
+			alert('请选中之后再还原!');
+			return;
+		}
+		if(confirm("确定要还原信息吗？")){
+			silencePost("fp_xx_back.jhtml", del_fm);
+		}
 	}
-	// 替换默认的查询功能为无刷新查询
-	window.querysubmit = function() {
-
+	
+	// 替换默认的上报功能为无刷新操作
+	window.commitsubmit = function() {
+		var selid=document.getElementsByName("sel_commit");
+		var check=false;
+		for (var i=0;i<selid.length;i++){
+			if(selid[i].checked){
+				check=true;
+				}
+		}
+		if(check==false){
+			alert('请选中之后再上报!');
+			return;
+		}
+		if(confirm("确定要上报信息吗？")){
+			silencePost("fp_xx_upload.jhtml", del_fm);
+		}
 	}
 
 	//获取指定form中的所有的<input>对象
