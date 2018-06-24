@@ -3,13 +3,14 @@
 // @description		本脚本用于beian.chinamobile.com界面优化。1.美化UI，响应式布局，消灭滚动条。2.整合为单页应用，无刷新查询，无跳转实现批量上传（左下角）。3.后续会增加自动化功能，新增或修改后自动上报。
 // @author			Xianda
 // @create			2018-06-10
-// @version			0.4.0
+// @version			0.4.1
 // @match			*://beian.chinamobile.com/*
 // @namespace		beian-chinamobile
 // @license			MIT
 // @copyright		2018, Xianda
-// @lastmodified	2018-06-24
+// @lastmodified	2018-06-25
 // @feedback-url	https://greasyfork.org/zh-CN/scripts/369426
+// @note			2018-06-25-V0.4.1	查询页面的input添加autocomplete="off"，去除自动完成，非查询页面提示脚本未生效。
 // @note			2018-06-24-V0.4.0	完善无刷新操作功能：删除、还原、上报
 // @note			2018-06-21-V0.3.2	修复bug
 // @note			2018-06-19-V0.2.0	测试脚本无法自动更新
@@ -30,7 +31,7 @@
 (function() {
 	'use strict';
 
-	var devVersion = "0.4.0";
+	var devVersion = "0.4.1";
 
 	// Ajax 特效
 	$("body").append('<style>.head{background:#94aedb}#load{position:absolute;top:0;bottom:0;left:0;right:0;z-index:200;}#load ._close{position:absolute;bottom:20px;left:0;height:50px;width:50px;font-size:100px;color:#000;cursor:pointer;line-height:50px;opacity:.2}.spinner{position:absolute;top:50%;left:50%;margin-top:-100px;margin-left:-300px;text-align:center}.spinner>div{width:200px;height:200px;background-color:#67CF22;border-radius:100%;display:inline-block;-webkit-animation:bouncedelay 1.4s infinite ease-in-out;animation:bouncedelay 1.4s infinite ease-in-out;-webkit-animation-fill-mode:both;animation-fill-mode:both}.spinner .bounce1{-webkit-animation-delay:-.32s;animation-delay:-.32s}.spinner .bounce2{-webkit-animation-delay:-.16s;animation-delay:-.16s}@-webkit-keyframes bouncedelay{0%,80%,100%{-webkit-transform:scale(0)}40%{-webkit-transform:scale(1)}}@keyframes bouncedelay{0%,80%,100%{transform:scale(0);-webkit-transform:scale(0)}40%{transform:scale(1);-webkit-transform:scale(1)}}</style><div id="load"><div class="_close" onclick="document.getElementById(&quot;load&quot;).style.display=&quot;none&quot;">×</div><div class="spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div></div>');
@@ -74,24 +75,25 @@
 			myform.userName.value = username;
 			myform.password.value = password;
 		}
-		
+
 		// 自动跳转到查询页
 		if (location.href.match("//beian.chinamobile.com/ismmobile/index/index.jhtml")) {
 			location.href = "/ismmobile/ipbak/fp_xx_list.jhtml";
 			return;
 		}
-		
+
 		// 若不是查询页则结束执行
 		if(!location.href.match("ipbak/fp_xx_list.jhtml")){
+			$("#NavBar").append('<p style="color:#fff;background-color:#000;margin-top:50px;padding:0 10px;">您已离开查询页面，优化脚本暂不生效！(V'+devVersion+')</p><a class="button" href="fp_xx_list.jhtml" style="display:inline-block;">返回查询页面</a>');
 			return;
 		}
-		
+
 		// 调整header
 		//document.getElementById("Container").style.marginTop = 0;
 		//document.getElementsByClassName("header")[0].style.display = "none";
 		document.getElementById("Container").style.marginTop = "70px";
 		document.getElementsByClassName("header")[0].style.zIndex = "-1";
-		
+
 		// 去除子标题
 		//document.getElementsByClassName("subtitle")[0].style.display = "none";
 		$(".subtitle").remove();
@@ -121,6 +123,9 @@
 		// 添加提示
 		$("#major-content table.t-detail tr:eq(4) td:eq(1)").html($("#major-content table.t-detail tr:eq(4) td:eq(1)").html().replace('格式：192.168.1.1', '<span style="color:red">结束ip留空，查询时会自动和起始ip相同</span>'));
 		$("#major-content table.t-detail tr:eq(4) td:eq(2)").text("");
+		$("#major-content table.t-detail tr:eq(8) td:eq(1) input:eq(1)").remove();
+		$("#major-content table.t-detail tr:eq(8) td:eq(1)").append('<a class="button" href="fp_xx_new.jhtml" target="_blank" style=" display:inline-block;">新增</a>');
+		$("#major-content table.t-detail input").attr("autocomplete","off");
 
 		// 取消搜索结果div的宽度限制
 		adjustDataTable();
@@ -147,7 +152,7 @@
 		// 隐藏上方的批量操作按钮
 		//$("#major-content table tr:eq(8) td.value input")[2].style.display = "none";
 		$("#major-content table tr:eq(8) td.value input:eq(2)").remove();
-		
+
 		// 防掉线
 		$("#major-content form[name='qvo_fm'] td:last").prepend('<button id="prevDown" class="button" data-txt="no">开启防掉线</button>');
 		$("#prevDown").bind("click",function(){
@@ -183,7 +188,7 @@
 		var _htmlHeight = document.documentElement ? document.documentElement.clientHeight : document.body.clientHeight;
 		del_fm.style.height = _htmlHeight - 70 - qvo_fm.clientHeight - 55 - 33 - 20 - 10 + "px";
 	}
-	
+
 	// 后台静默post提交
 	window.silencePost = function(url,formName){
 		var searchUrl = url + " #MainBody";
@@ -208,7 +213,7 @@
 			del_fm.childNodes[1].style.width = "";
 		});*/
 	}
-	
+
 	// 替换默认的查询功能为无刷新查询
 	window.querysubmit = function() {
 		//xda_search(document.getElementById());
@@ -256,7 +261,7 @@
 			silencePost("fp_xx_back.jhtml", del_fm);
 		}
 	}
-	
+
 	// 替换默认的上报功能为无刷新操作
 	window.commitsubmit = function() {
 		var selid=document.getElementsByName("sel_commit");
