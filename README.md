@@ -15,7 +15,7 @@ The original page of the website is ugly, and it is very cumbersome to use. Ever
 ### Features
 
 - Beautify the web UI, Simplify the functions
-- Support to record login information in local and jump to the searching page aotumatic
+- Support to record login information in local and jump to the searching page aotumatic after login
 - More features are coming out, contact me if you have one
 
 ### Usage
