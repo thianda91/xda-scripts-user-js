@@ -1,15 +1,18 @@
 // ==UserScript==
-// @name			Xianda-中国移动网站备案管理系统优化
-// @description		本脚本用于beian.chinamobile.com界面优化。1.美化UI，响应式布局，消灭滚动条。2.整合为单页应用，无刷新查询，无跳转实现批量上传（左下角）。3.后续会增加自动化功能，新增或修改后自动上报。
+// @name			beian-chinamobile-beautifier
+// @name:zh			中国移动网站备案管理系统优化
+// @description		Beautify the web UI, Simplify the functions. Record login information in local and jump to the searching page aotumatic after login
+// @description:zh	本脚本用于beian.chinamobile.com界面优化。1.美化UI，响应式布局，消灭滚动条。2.整合为单页应用，无刷新查询，无跳转实现批量上传（左下角）。3.后续会增加自动化功能，新增或修改后自动上报。
 // @author			Xianda
 // @create			2018-06-10
-// @version			0.4.1
+// @version			0.5.0
 // @match			*://beian.chinamobile.com/*
 // @namespace		beian-chinamobile
 // @license			MIT
 // @copyright		2018, Xianda
-// @lastmodified	2018-06-25
-// @feedback-url	https://greasyfork.org/zh-CN/scripts/369426
+// @lastmodified	2018-07-09
+// @feedback-url	https://greasyfork.org/scripts/369426
+// @note			2018-06-25-V0.5.0	修复批量修改按钮功能无效bug
 // @note			2018-06-25-V0.4.1	查询页面的input添加autocomplete="off"，去除自动完成，非查询页面提示脚本未生效。
 // @note			2018-06-24-V0.4.0	完善无刷新操作功能：删除、还原、上报
 // @note			2018-06-21-V0.3.2	修复bug
@@ -21,9 +24,9 @@
 // @note			2018-06-12-V0.1.2	更新 Userscript Header
 // @note			2018-06-11-V0.1.1	支持记录本地登陆信息
 // @note			2018-06-10-V0.1.0	支持查询
-// @homepage		https://github.com/yuxianda/beian-chinamobile
+// @homepage		https://github.com/thianda/beian-chinamobile
 // @icon			http://wx2.sinaimg.cn/large/679a709ely1frs5u2z5ibj205c05c3yd.jpg
-// @downloadURL		https://greasyfork.org/scripts/369426-xianda-%E4%B8%AD%E5%9B%BD%E7%A7%BB%E5%8A%A8%E7%BD%91%E7%AB%99%E5%A4%87%E6%A1%88%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F%E4%BC%98%E5%8C%96/code/Xianda-%E4%B8%AD%E5%9B%BD%E7%A7%BB%E5%8A%A8%E7%BD%91%E7%AB%99%E5%A4%87%E6%A1%88%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F%E4%BC%98%E5%8C%96.user.js
+// @downloadURL		https://greasyfork.org/scripts/369426-beian-chinamobile-beautifier.user.js
 // @run-at			document-body
 // @grant			none
 // ==/UserScript==
@@ -31,7 +34,7 @@
 (function() {
 	'use strict';
 
-	var devVersion = "0.4.1";
+	var devVersion = "0.5.0";
 
 	// Ajax 特效
 	$("body").append('<style>.head{background:#94aedb}#load{position:absolute;top:0;bottom:0;left:0;right:0;z-index:200;}#load ._close{position:absolute;bottom:20px;left:0;height:50px;width:50px;font-size:100px;color:#000;cursor:pointer;line-height:50px;opacity:.2}.spinner{position:absolute;top:50%;left:50%;margin-top:-100px;margin-left:-300px;text-align:center}.spinner>div{width:200px;height:200px;background-color:#67CF22;border-radius:100%;display:inline-block;-webkit-animation:bouncedelay 1.4s infinite ease-in-out;animation:bouncedelay 1.4s infinite ease-in-out;-webkit-animation-fill-mode:both;animation-fill-mode:both}.spinner .bounce1{-webkit-animation-delay:-.32s;animation-delay:-.32s}.spinner .bounce2{-webkit-animation-delay:-.16s;animation-delay:-.16s}@-webkit-keyframes bouncedelay{0%,80%,100%{-webkit-transform:scale(0)}40%{-webkit-transform:scale(1)}}@keyframes bouncedelay{0%,80%,100%{transform:scale(0);-webkit-transform:scale(0)}40%{transform:scale(1);-webkit-transform:scale(1)}}</style><div id="load"><div class="_close" onclick="document.getElementById(&quot;load&quot;).style.display=&quot;none&quot;">×</div><div class="spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div></div>');
@@ -60,10 +63,10 @@
 				}
 				return;
 			}
-			var username = localStorage.getItem("xda_username");
-			var password = localStorage.getItem("xda_password");
-			if (username && password) {
-				login(username, password);
+			var _username = localStorage.getItem("xda_username");
+			var _password = localStorage.getItem("xda_password");
+			if (_username && _password) {
+				login(_username, _password);
 			}
 			myform.authCode.value="";
 			myform.authCode.focus();
@@ -71,9 +74,9 @@
 		}
 
 		// 登录函数，本地自动登录
-		function login(username, password) {
-			myform.userName.value = username;
-			myform.password.value = password;
+		function login(_username, _password) {
+			myform.userName.value = _username;
+			myform.password.value = _password;
 		}
 
 		// 自动跳转到查询页
@@ -129,25 +132,9 @@
 
 		// 取消搜索结果div的宽度限制
 		adjustDataTable();
-
+		
 		// 添加批量操作功能到当前页
-		$("#MainBody div:last").prepend('<div id="XiandaDiv" style="display: inline-block; float: left; width: 750px;"></div>');
-		$("#XiandaDiv").load("batch_fpxx_new.jhtml .yui-g",function(){
-			$("#XiandaDiv").html($("#XiandaDiv").html().replace(/批量/g,""));
-			// 导入操作从新窗口打开
-			fp_xx_new_fm.target="_blank";
-			// 导入函数
-			window.mysumitAdd = function(){
-				var file= document.fp_xx_new_fm.file2.value;
-				if (file!=""&&file!=null){
-					document.fp_xx_new_fm.submit();
-				}
-				else{
-					alert("未选导入文件");
-				}
-			}
-			//$("#XiandaDiv a:last").text("验证文件下载");
-		});
+		initPiLiang();
 
 		// 隐藏上方的批量操作按钮
 		//$("#major-content table tr:eq(8) td.value input")[2].style.display = "none";
@@ -181,12 +168,45 @@
 		},timeout);
 	}
 
-	// 调整查询结果的表格大小
+	// 取消搜索结果div的宽度限制
 	window.adjustDataTable = function(){
 		document.getElementById("data_table").width = "100%";
 		del_fm.childNodes[3].style.width = "";
 		var _htmlHeight = document.documentElement ? document.documentElement.clientHeight : document.body.clientHeight;
 		del_fm.style.height = _htmlHeight - 70 - qvo_fm.clientHeight - 55 - 33 - 20 - 10 + "px";
+	}
+
+	// 添加批量操作功能到当前页
+	window.initPiLiang = function(){
+		$("#MainBody div:last").prepend('<div id="XiandaDiv" style="display: inline-block; float: left; width: 750px;"></div>');
+		$("#XiandaDiv").load("batch_fpxx_new.jhtml .yui-g",function(){
+			$("#XiandaDiv").html($("#XiandaDiv").html().replace(/批量/g,""));
+			// 所有操作从新窗口打开
+			fp_xx_new_fm.target="_blank";
+			$(".yui-g a").attr("target","_blank");
+		});
+		// 导入新增函数
+		window.mysumitAdd = function(){
+			var file= document.fp_xx_new_fm.file2.value;
+			if (file!=""&&file!=null){
+				document.fp_xx_new_fm.action = "batch_fpxx_new.jhtml";
+				document.fp_xx_new_fm.submit();
+			}
+			else{
+				alert("未选导入文件");
+			}
+		}
+		// 导出修改函数
+		window.mysumitUpdate = function(){
+			var file= document.fp_xx_new_fm.file2.value;
+			if (file!=""&&file!=null){
+				document.fp_xx_new_fm.action = "batch_fpxx_new.jhtml?code=1";
+				document.fp_xx_new_fm.submit();
+			}
+			else{
+				alert("未选导入文件");
+			}
+		}
 	}
 
 	// 后台静默post提交
