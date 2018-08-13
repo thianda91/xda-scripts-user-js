@@ -1,6 +1,6 @@
 ## beian-chinamobile:bike: 
 
-A tampermonkey script for the domain `beian.chinamobile.com`:monkey:
+This is a tampermonkey script for the domain :monkey:
 
 *NO OFFENSE* :new_moon_with_face:
 
@@ -22,7 +22,7 @@ The original page of the website is ugly, and it is very cumbersome to use. Ever
 
 - Please use modern browers like Chrome, Firefox, Microsoft Edge
 - Install tampermonkey add-on from [here](http://tampermonkey.net/)
-- Visit [greasyfork.org](https://greasyfork.org/scripts/369426/) to install, or click [here](https://greasyfork.org/scripts/369426-beian-chinamobile-beautifier/code/beian-chinamobile-beautifier.user.js) directly to install, if you got tampermonkey , it will be installed automatic
+- Contact me by email for getting the script installed
 - Refresh the web page, enjoy it!
 
 ### Updates
