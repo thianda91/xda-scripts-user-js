@@ -7,15 +7,16 @@
 // @description:zh-CN	本脚本用于beian.chinamobile.com界面优化。1.美化UI，响应式布局，消灭滚动条。2.整合为单页应用，无刷新查询，无跳转实现批量上传（左下角）。3.后续会增加自动化功能，新增或修改后自动上报。
 // @author				X.Da
 // @create				2018-06-10
-// @version				0.6.4
+// @version				0.7.0
 // @match				*://beian.chinamobile.com/*
 // @match				*://10.1.68.22/*
 // @match				*://10.1.68.37/*
 // @namespace			beian-chinamobile
 // @license				MIT
 // @copyright			2018, X.Da
-// @lastmodified		2018-07-26
+// @lastmodified		2018-09-06
 // @feedback-url		https://greasyfork.org/scripts/369426
+// @note				2018-09-06-V0.7.0	test for autoDelAndPost method
 // @note				2018-07-26-V0.6.4	might be the final release
 // @note				2018-07-10-V0.6.0	新增对集团安全管控平台（集团IP备案）的优化
 // @note				2018-07-09-V0.5.0	修复批量修改按钮功能无效bug
@@ -37,32 +38,32 @@
 // @grant				none
 // ==/UserScript==
 
-(function() {
+(function () {
 	'use strict';
 
-	var devVersion = "0.6.4";
+	var devVersion = "0.7.0";
 
 	// Ajax 特效
 	$("body").append('<style>.head{background:#94aedb}#load{position:absolute;top:0;bottom:0;left:0;right:0;z-index:200;}#load ._close{position:absolute;bottom:20px;left:0;height:50px;width:50px;font-size:100px;color:#000;cursor:pointer;line-height:50px;opacity:.2}.spinner{position:absolute;top:50%;left:50%;margin-top:-100px;margin-left:-300px;text-align:center}.spinner>div{width:200px;height:200px;background-color:#67CF22;border-radius:100%;display:inline-block;-webkit-animation:bouncedelay 1.4s infinite ease-in-out;animation:bouncedelay 1.4s infinite ease-in-out;-webkit-animation-fill-mode:both;animation-fill-mode:both}.spinner .bounce1{-webkit-animation-delay:-.32s;animation-delay:-.32s}.spinner .bounce2{-webkit-animation-delay:-.16s;animation-delay:-.16s}@-webkit-keyframes bouncedelay{0%,80%,100%{-webkit-transform:scale(0)}40%{-webkit-transform:scale(1)}}@keyframes bouncedelay{0%,80%,100%{transform:scale(0);-webkit-transform:scale(0)}40%{transform:scale(1);-webkit-transform:scale(1)}}</style><div id="load"><div class="_close" onclick="document.getElementById(&quot;load&quot;).style.display=&quot;none&quot;">×</div><div class="spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div></div>');
-	$(document).ajaxStart(function() {
+	$(document).ajaxStart(function () {
 		$("#load").show();
-	}).ajaxStop(function() {
+	}).ajaxStop(function () {
 		$("#load").hide();
 	});
 
 	// 随机setInterval函数
-	window.flip = function(obj){
-		var timeout=Math.round(Math.random()*60000+40000);
+	window.flip = function (obj) {
+		var timeout = Math.round(Math.random() * 60000 + 40000);
 		clearTimeout(obj.flip);
-		obj.flip=setTimeout(function timeoutFun(){
+		obj.flip = setTimeout(function timeoutFun() {
 			$.get("/ismmobile/index/index.jhtml");
-			timeout=Math.round(Math.random()*60000+40000);
-			obj.flip=setTimeout(timeoutFun,timeout);
-		},timeout);
+			timeout = Math.round(Math.random() * 60000 + 40000);
+			obj.flip = setTimeout(timeoutFun, timeout);
+		}, timeout);
 	}
 
 	// 取消搜索结果div的宽度限制
-	window.adjustDataTable = function(){
+	window.adjustDataTable = function () {
 		document.getElementById("data_table").width = "100%";
 		del_fm.childNodes[3].style.width = "";
 		var _htmlHeight = document.documentElement ? document.documentElement.clientHeight : document.body.clientHeight;
@@ -70,55 +71,75 @@
 	}
 
 	// 添加批量操作功能到当前页
-	window.initPiLiang = function(){
+	window.initPiLiang = function () {
 		$("#MainBody div:last").prepend('<div id="XiandaDiv" style="display: inline-block; float: left; width: 750px;"></div>');
-		$("#XiandaDiv").load("batch_fpxx_new.jhtml .yui-g",function(){
-			$("#XiandaDiv").html($("#XiandaDiv").html().replace(/批量/g,""));
+		$("#XiandaDiv").load("batch_fpxx_new.jhtml .yui-g", function () {
+			$("#XiandaDiv").html($("#XiandaDiv").html().replace(/[批量|下载]/g, ""));
+			// 去掉 验证文件下载 的链接（不知道干什么用的）
+			$("#XiandaDiv form a")[2].remove();
+			$("#XiandaDiv #file2").css("width", "380px");
 			// 所有操作从新窗口打开
-			fp_xx_new_fm.target="_blank";
-			$(".yui-g a").attr("target","_blank");
+			fp_xx_new_fm.target = "_blank";
+			$(".yui-g a").attr("target", "_blank");
+		});
+		$("#XiandaDiv ~ input:eq(3)").attr("onclick", null).val("智能删&报").css("background-color", "blue");
+		$("#XiandaDiv ~ input:eq(3)").click(function () {
+			// 自动删除并上报
+			delAndPost();
 		});
 		// 导入新增函数
-		window.mysumitAdd = function(){
-			var file= document.fp_xx_new_fm.file2.value;
-			if (file!=""&&file!=null){
+		window.mysumitAdd = function () {
+			var file = document.fp_xx_new_fm.file2.value;
+			if (file != "" && file != null) {
 				document.fp_xx_new_fm.action = "batch_fpxx_new.jhtml";
 				document.fp_xx_new_fm.submit();
 			}
-			else{
+			else {
 				alert("未选导入文件");
 			}
 		}
 		// 导出修改函数
-		window.mysumitUpdate = function(){
-			var file= document.fp_xx_new_fm.file2.value;
-			if (file!=""&&file!=null){
+		window.mysumitUpdate = function () {
+			var file = document.fp_xx_new_fm.file2.value;
+			if (file != "" && file != null) {
 				document.fp_xx_new_fm.action = "batch_fpxx_new.jhtml?code=1";
 				document.fp_xx_new_fm.submit();
 			}
-			else{
+			else {
 				alert("未选导入文件");
 			}
 		}
 	}
 
 	// 后台静默post提交
-	window.silencePost = function(url,formName){
+	window.silencePost = function (url, formName, callback) {
 		var searchUrl = url + " #MainBody";
-		if(document.getElementById("xda_temp")==undefined) $("body").append('<div id="xda_temp" style="display:none;"></div>');
-		$("#xda_temp").load(searchUrl,serializeForm(formName),function(data){
+		if (document.getElementById("xda_temp") == undefined) $("body").append('<div id="xda_temp" style="display:none;"></div>');
+		var __data;
+		// 参数 formName 为 序列化的 _data 或 form 对象
+		if (typeof formName === "string") {
+			__data = formName;
+		} else {
+			__data = serializeForm(formName);
+		}
+		if (__data == "" || /&/.test(serializeForm(del_fm))) {
+			// checkbox 无勾选
+			return;
+		}
+		$("#xda_temp").load(searchUrl, __data, function (data) {
 			//var noticeReg = /\('NoticeBox[12]'\)" class="close">\[X\]<\/span><p style="text-align:left;">(.+)<b/;
-			var xda_data = data.replace(/[\t\r\n]/g,"");
+			var xda_data = data.replace(/[\t\r\n]/g, "");
 			var result = xda_data.match(/<div id="(NoticeBox[0-9])".+<\/p><\/div>/);
-			if(result){
-				$("#"+result[1]).remove();
+			if (result) {
+				$("#" + result[1]).remove();
 				$("#major-content").before(result[0]);
-				$(".msg-box").css({"position":"absolute","left":"480px","top":"10px","width":"350px"});
+				$(".msg-box").css({ "position": "absolute", "left": "480px", "top": "10px", "width": "350px" });
 			}
 			$("#Main #major-content form[name='del_fm']").replaceWith($("#xda_temp form[name='del_fm']"));
 			$("#Main #major-content #page form").replaceWith($("#xda_temp #page form"));
-			setTimeout(adjustDataTable,0);
+			setTimeout(adjustDataTable, 0);
 			$("#xda_temp").remove();
+			callback !== undefined && callback(); // 执行回调函数
 		});
 		/*var searchUrl = url + " form[name='del_fm'] div";
 		$("form[name='del_fm']").load(searchUrl, serializeForm(qvo_fm), function() {
@@ -127,74 +148,107 @@
 		});*/
 	}
 
+	// 智能操作 - 自动删除并上报
+	window.delAndPost = function () {
+		var length = $("#data_table tr.user-data").length;
+		var data = [];
+		window.sel_commit = "";
+		for (var i = 0; i < length; i++) {
+			// $("#data_table tr.user-data:eq(0) td.c_2").text().trim()
+			var c_1 = $("#data_table tr.user-data:eq(" + i + ") td.c_1").text().trim();
+			var ipstr = $("#data_table tr.user-data:eq(" + i + ") td.c_2").text().trim() + "-" + $("#data_table tr.user-data:eq(" + i + ") td.c_3").text().trim();
+			var c_4 = $("#data_table tr.user-data:eq(" + i + ") td.c_4").text().trim();
+			if (c_4 == '自用') {
+				data.push({ "id": c_1, "ipstr": ipstr, "index": i });
+			} else {
+				for (var j in data) {
+					if (data[j]['ipstr'] == ipstr) {
+						// 同 IP 重复出现
+						$("#data_table input[name='sel'][value=" + data[j]["id"] + "]").attr("checked", true); // 自用的勾选删除
+						sel_commit += "&sel_commit=" + data[j]["id"];
+						sel_commit += "&sel_commit=" + c_1; // 记录 上报的 id
+					}
+				}
+			}
+		}
+		// 先删，再上报
+		silencePost("fp_xx_delete.jhtml", del_fm, function () {
+			setTimeout(function () {
+				var __data = serializeForm(del_fm) + window.sel_commit;
+				// 上报后查询一次
+				silencePost("fp_xx_upload.jhtml", __data, querysubmit);
+			}, 0);
+		});
+	}
+
 	// 替换默认的查询功能为无刷新查询
-	window.querysubmit = function() {
+	window.querysubmit = function () {
 		//xda_search(document.getElementById());
-		if(FormIsValid() == false) return;
+		if (FormIsValid() == false) return;
 		// 自动补全 ipStr_end
-		if(qvo_fm.ipStr_end.value == "") qvo_fm.ipStr_end.value = qvo_fm.ipStr_begin.value;
+		if (qvo_fm.ipStr_end.value == "") qvo_fm.ipStr_end.value = qvo_fm.ipStr_begin.value;
 		// 添加参数，使单页最多显示1000条查询结果
 		$("#major-content table.t-detail tr:eq(7)").append('<td></td><td><input name="pSize" value="200"></td>');
-		if(document.resultform) resultform.pSize.value = 200;
+		if (document.resultform) resultform.pSize.value = 200;
 		silencePost("fp_xx_list.jhtml", qvo_fm);
 	}
 
 	// 替换默认的删除功能为无刷新操作
-	window.delsubmit = function() {
-		var selid=document.getElementsByName("sel");
-		var check=false;
-		for (var i=0;i<selid.length;i++){
-			if(selid[i].checked){
-				check=true;
-				}
+	window.delsubmit = function () {
+		var selid = document.getElementsByName("sel");
+		var check = false;
+		for (var i = 0; i < selid.length; i++) {
+			if (selid[i].checked) {
+				check = true;
+			}
 		}
-		if(check==false){
+		if (check == false) {
 			alert('请选中之后再删除!');
 			return;
 		}
-		if(confirm("确定要删除信息吗？")){
+		if (confirm("确定要删除信息吗？")) {
 			silencePost("fp_xx_delete.jhtml", del_fm);
 		}
 	}
 
 	// 替换默认的还原功能为无刷新操作
-	window.backsubmit = function() {
-		var selid=document.getElementsByName("sel_back");
-		var check=false;
-		for (var i=0;i<selid.length;i++){
-			if(selid[i].checked){
-				check=true;
-				}
+	window.backsubmit = function () {
+		var selid = document.getElementsByName("sel_back");
+		var check = false;
+		for (var i = 0; i < selid.length; i++) {
+			if (selid[i].checked) {
+				check = true;
+			}
 		}
-		if(check==false){
+		if (check == false) {
 			alert('请选中之后再还原!');
 			return;
 		}
-		if(confirm("确定要还原信息吗？")){
+		if (confirm("确定要还原信息吗？")) {
 			silencePost("fp_xx_back.jhtml", del_fm);
 		}
 	}
 
 	// 替换默认的上报功能为无刷新操作
-	window.commitsubmit = function() {
-		var selid=document.getElementsByName("sel_commit");
-		var check=false;
-		for (var i=0;i<selid.length;i++){
-			if(selid[i].checked){
-				check=true;
-				}
+	window.commitsubmit = function () {
+		var selid = document.getElementsByName("sel_commit");
+		var check = false;
+		for (var i = 0; i < selid.length; i++) {
+			if (selid[i].checked) {
+				check = true;
+			}
 		}
-		if(check==false){
+		if (check == false) {
 			alert('请选中之后再上报!');
 			return;
 		}
-		if(confirm("确定要上报信息吗？")){
+		if (confirm("确定要上报信息吗？")) {
 			silencePost("fp_xx_upload.jhtml", del_fm);
 		}
 	}
 
 	//获取指定form中的所有的<input>对象
-	window.getElements = function(formId) {
+	window.getElements = function (formId) {
 		//var form = document.getElementById(formId);
 		var form = formId;
 		var elements = new Array();
@@ -214,7 +268,7 @@
 	}
 
 	//组合URL
-	window.serializeElement = function(element) {
+	window.serializeElement = function (element) {
 		var method = element.tagName.toLowerCase();
 		var parameter;
 		if (method == 'select') {
@@ -250,7 +304,7 @@
 	}
 
 	//调用方法
-	window.serializeForm = function(formId) {
+	window.serializeForm = function (formId) {
 		var elements = getElements(formId);
 		var queryComponents = new Array();
 		for (var i = 0; i < elements.length; i++) {
@@ -262,15 +316,15 @@
 		return queryComponents.join('&');
 	}
 
-	$(function() {
+	$(function () {
 		$("#load").hide();
 
 		/* 集团安全管控平台(集团IP备案)相关优化 */
 		// 集团安全管控登录页
-		if(document.location.host == "10.1.68.37:8080"){
-			if(document.location.href.match("indexForJT.jsp")){
+		if (document.location.host == "10.1.68.37:8080") {
+			if (document.location.href.match("indexForJT.jsp")) {
 				document.forms[0].smsName.value = localStorage.getItem("xda_username");
-				$("#getPasswd").bind("click",function(){
+				$("#getPasswd").bind("click", function () {
 					localStorage.setItem("xda_username", document.forms[0].smsName.value);
 				});
 			}
@@ -278,29 +332,29 @@
 		}
 
 		// 集团安全管控登陆后首页
-		if(document.location.host == "10.1.68.22"){
+		if (document.location.host == "10.1.68.22") {
 			// 自动打开ctrix
-			window.autoOpenCtrix = function (){
-				if(window.frames["content"].document.getElementsByClassName("optionbtn-left").length > 0){
+			window.autoOpenCtrix = function () {
+				if (window.frames["content"].document.getElementsByClassName("optionbtn-left").length > 0) {
 					window.frames["content"].document.getElementsByClassName("optionbtn-left")[0].style.borderWidth = "1px";
 					window.frames["content"].document.getElementsByClassName("optionbtn-left")[0].style.borderColor = "red";
 					window.frames["content"].document.getElementsByClassName("optionbtn-left")[0].style.borderStyle = "solid";
-					(function bbb(){
+					(function bbb() {
 						var cc = sessionStorage.getItem("xda_cc") | 0;
-						var bgcolor = ["#fb002d","#1b87b8","#000","#f83cd4"];
-						$(window.frames["content"].document.getElementsByClassName("optionbtn-left")[0]).css("background", bgcolor[cc%4]);
+						var bgcolor = ["#fb002d", "#1b87b8", "#000", "#f83cd4"];
+						$(window.frames["content"].document.getElementsByClassName("optionbtn-left")[0]).css("background", bgcolor[cc % 4]);
 						sessionStorage.setItem("xda_cc", ++cc);
 						//console.log("cc:\t",cc,bgcolor,Date.now());
-						if(cc < 64){
-							setTimeout(function(){bbb()}, 10);
-						}else{
+						if (cc < 64) {
+							setTimeout(function () { bbb() }, 10);
+						} else {
 							$(window.frames["content"].document.getElementsByClassName("optionbtn-left")[0]).css("background", "#8fc31f");
 							window.frames["content"].document.getElementsByClassName("optionbtn-left")[0].click();
-							sessionStorage.setItem("xda_cc",null);
+							sessionStorage.setItem("xda_cc", null);
 						}
 					})();
-				}else{
-					setTimeout(autoOpenCtrix,1000);
+				} else {
+					setTimeout(autoOpenCtrix, 1000);
 				}
 			}
 			autoOpenCtrix();
@@ -311,9 +365,9 @@
 		if (document.myform && myform.action.match("/user/login.jhtml")) {
 			//$("td[colspan=3]:first").removeAttr("colspan").after("<td colspan=2><b style='color:green'>已启用优化，登录后享受！</b></td>");
 			//$("table table table tr:eq(1)").append("<td>V"+devVersion+"</td>");
-			$("a.more").after('<div style="float:right;color:#fff;background-color:#000;margin-right:160px;padding:0 10px;">已启动优化,登录后查看！(V'+devVersion+')</div>');
+			$("a.more").after('<div style="float:right;color:#fff;background-color:#000;margin-right:160px;padding:0 10px;">已启动优化,登录后查看！(V' + devVersion + ')</div>');
 			myform.userType.value = 2;
-			window.myclick = function() {
+			window.myclick = function () {
 				localStorage.setItem("xda_username", myform.userName.value);
 				localStorage.setItem("xda_password", myform.password.value);
 				var password = $("#password");
@@ -328,8 +382,8 @@
 			if (_username && _password) {
 				login(_username, _password);
 			}
-			myform.authCode.autocomplete="off";
-			myform.authCode.value="";
+			myform.authCode.autocomplete = "off";
+			myform.authCode.value = "";
 			myform.authCode.focus();
 			return;
 		}
@@ -347,8 +401,8 @@
 		}
 
 		// 若不是查询页则结束执行
-		if(!location.href.match("ipbak/fp_xx_list.jhtml")){
-			$("#NavBar").append('<p style="color:#fff;background-color:#000;margin-top:50px;padding:0 10px;">您已离开查询页面，优化脚本暂不生效！(V'+devVersion+')</p><a class="button" href="fp_xx_list.jhtml" style="display:inline-block;">返回查询页面</a>');
+		if (!location.href.match("ipbak/fp_xx_list.jhtml")) {
+			$("#NavBar").append('<p style="color:#fff;background-color:#000;margin-top:50px;padding:0 10px;">您已离开查询页面，优化脚本暂不生效！(V' + devVersion + ')</p><a class="button" href="fp_xx_list.jhtml" style="display:inline-block;">返回查询页面</a>');
 			return;
 		}
 
@@ -389,7 +443,7 @@
 		$("#major-content table.t-detail tr:eq(4) td:eq(2)").text("");
 		$("#major-content table.t-detail tr:eq(8) td:eq(1) input:eq(1)").remove();
 		$("#major-content table.t-detail tr:eq(8) td:eq(1)").append('<a class="button" href="fp_xx_new.jhtml" target="_blank" style=" display:inline-block;">新增</a>');
-		$("#major-content table.t-detail input").attr("autocomplete","off");
+		$("#major-content table.t-detail input").attr("autocomplete", "off");
 
 		// 取消搜索结果div的宽度限制
 		adjustDataTable();
@@ -403,16 +457,16 @@
 
 		// 防掉线
 		$("#major-content form[name='qvo_fm'] td:last").prepend('<button id="prevDown" class="button" data-txt="no">开防掉线</button>');
-		$("#prevDown").bind("click",function(){
-			var tpl = {no:['yes','关闭防掉线'],yes:['no','开启防掉线']};
+		$("#prevDown").bind("click", function () {
+			var tpl = { no: ['yes', '关闭防掉线'], yes: ['no', '开启防掉线'] };
 			var _status = $(this).attr("data-txt");
-			if(_status=='no'){
+			if (_status == 'no') {
 				flip(this);
-			}else if(_status=='yes'){
+			} else if (_status == 'yes') {
 				clearTimeout(this.flip);
 			}
 			$(this).text(tpl[_status][1]);
-			$(this).attr("data-txt",tpl[_status][0]);
+			$(this).attr("data-txt", tpl[_status][0]);
 			return false;
 		});
 		$("#prevDown").click();
