@@ -1,7 +1,7 @@
 #$language = "VBScript"
 #$interface = "1.0"
-crt.Screen.Synchronous = True 'Ö´ĞĞ½Å±¾½á¹ûÍ¬²½ÏÔÊ¾µ½ÆÁÄ»
-	'1.²ÎÊı¶¨Òå¡£
+crt.Screen.Synchronous = True 'æ‰§è¡Œè„šæœ¬ç»“æœåŒæ­¥æ˜¾ç¤ºåˆ°å±å¹•
+	'1.å‚æ•°å®šä¹‰ã€‚
 	Const ForReading = 1, ForWriting = 2, ForAppending = 8
 	Dim fso,logfile,fldr,tt,objNetwork,strUser
 	linenum = 0
@@ -9,18 +9,19 @@ crt.Screen.Synchronous = True 'Ö´ĞĞ½Å±¾½á¹ûÍ¬²½ÏÔÊ¾µ½ÆÁÄ»
 	Set fso = CreateObject("Scripting.FileSystemObject")
 	Set objNetwork = CreateObject("Wscript.Network")  
 	strUser = objNetwork.UserName  
-	fldr = "\\10.204.205.236\4afile\"& strUser &"\Xianda-log-CMNET\dis-cu\"&year(Now)&"-"&Month(Now)&"-"&day(Now)&" "&Weekdayname(Weekday(now))
+	'fldr = "\\10.204.205.236\4afile\"& strUser &"\Xianda-log-CMNET\dis-cu\"&year(Now)&"-"&Month(Now)&"-"&day(Now)&" "&Weekdayname(Weekday(now))
+	fldr = "\\4A3-FTPTRANS01\ftptrans\"& strUser &"\log-cmnet\dis-cu\"&year(Now)&"-"&Month(Now)&"-"&day(Now)&" "&Weekdayname(Weekday(now))
 	tt = fso.FolderExists(fldr)
 	if tt<>true Then fso.CreateFolder(fldr)
 	Dim the_ip
-	the_ip=crt.Dialog.Prompt("ÊäÈë¸ÃÉè±¸µÄIP»òÕßÃû³Æ-ÆğÎÄ¼şÃûÓÃ:", "Enter IP or Name", "", false)
-	logfile = fldr & "\" & the_ip &"-dis cu-²É¼¯-" & year(Now)&"-"&Month(Now)&"-"&day(Now) & ".txt"
+	the_ip=crt.Dialog.Prompt("è¾“å…¥è¯¥è®¾å¤‡çš„IPæˆ–è€…åç§°-èµ·æ–‡ä»¶åç”¨:", "Enter IP or Name", "", false)
+	logfile = fldr & "\" & the_ip &"-dis cu-é‡‡é›†-" & year(Now)&"-"&Month(Now)&"-"&day(Now) & ".txt"
 	crt.Session.LogFileName = logfile
 	crt.Session.Log(True)
 
 	crt.Screen.Send vbcr
 	crt.Screen.WaitForString ">"
-	'¡¾ÅĞ¶Ï6¡¿Ö´ĞĞÃüÁî
+	'ã€åˆ¤æ–­6ã€‘æ‰§è¡Œå‘½ä»¤
 	crt.Screen.Send chr(32) & " sys"& vbcr
 	crt.Screen.Send vbcr & chr(32) & " dis cu"
 	crt.sleep 1000
@@ -34,7 +35,7 @@ crt.Screen.Synchronous = True 'Ö´ĞĞ½Å±¾½á¹ûÍ¬²½ÏÔÊ¾µ½ÆÁÄ»
 	crt.Screen.waitforstring ">"
 	crt.Session.Log(false)
 	setAuthor_v2 logfile
-	'¡¾ÅĞ¶Ï6¡¿µÇÂ½·½Ê½£¬²¢½øÒ»²½ÍË³ö
+	'ã€åˆ¤æ–­6ã€‘ç™»é™†æ–¹å¼ï¼Œå¹¶è¿›ä¸€æ­¥é€€å‡º
 
 	crt.Screen.Send chr(32) & vbcr
 	crt.Screen.Send chr(32) & " quit" 
@@ -46,7 +47,7 @@ crt.Screen.Synchronous = True 'Ö´ĞĞ½Å±¾½á¹ûÍ¬²½ÏÔÊ¾µ½ÆÁÄ»
 Function setAuthor(logfile)
 	dim templog,temline
 	set templog = fso.CreateTextFile("tmp.txt",True)
-	templog.WriteLine "Scripts are powered by Xianda  ÏÔ´ï"
+	templog.WriteLine "Scripts are powered by Xianda  æ˜¾è¾¾"
 	templog.Close
 	Set templog = fso.OpenTextFile("tmp.txt",1,False)
 	temline =  templog.ReadLine
@@ -63,7 +64,7 @@ Function setAuthor_v2(logfile)
 	Set thelog = fso.OpenTextFile(logfile,8,False)
 	thelog.WriteLine ""
 	dim msg
-	msg="ÏÔ´ï ²É¼¯ÓÚ "
+	msg="æ˜¾è¾¾ é‡‡é›†äº "
 	thelog.WriteLine msg & now & " " & Weekdayname(Weekday(now))
 	thelog.Close
 	'Set shell=createobject("wscript.shell")
@@ -73,9 +74,9 @@ end Function
 
 '-------------------------------------------------
 
-'º¯ÊıÃû³Æ:ReadFile
+'å‡½æ•°åç§°:ReadFile
 
-'×÷ÓÃ:ÀûÓÃAdoDb.Stream¶ÔÏóÀ´¶ÁÈ¡¸÷ÖÖ¸ñÊ½µÄÎÄ±¾ÎÄ¼ş
+'ä½œç”¨:åˆ©ç”¨AdoDb.Streamå¯¹è±¡æ¥è¯»å–å„ç§æ ¼å¼çš„æ–‡æœ¬æ–‡ä»¶
 
 '-------------------------------------------------
 
@@ -109,9 +110,9 @@ End Function
 
 '-------------------------------------------------
 
-'º¯ÊıÃû³Æ:WriteToFile
+'å‡½æ•°åç§°:WriteToFile
 
-'×÷ÓÃ:ÀûÓÃAdoDb.Stream¶ÔÏóÀ´Ğ´Èë¸÷ÖÖ¸ñÊ½µÄÎÄ±¾ÎÄ¼ş
+'ä½œç”¨:åˆ©ç”¨AdoDb.Streamå¯¹è±¡æ¥å†™å…¥å„ç§æ ¼å¼çš„æ–‡æœ¬æ–‡ä»¶
 
 '-------------------------------------------------
 
@@ -143,9 +144,9 @@ End Function
 
 '-------------------------------------------------
 
-'º¯ÊıÃû³Æ:ConvertFile
+'å‡½æ•°åç§°:ConvertFile
 
-'×÷ÓÃ:½«Ò»¸öÎÄ¼ş½øĞĞ±àÂë×ª»»
+'ä½œç”¨:å°†ä¸€ä¸ªæ–‡ä»¶è¿›è¡Œç¼–ç è½¬æ¢
 
 '-------------------------------------------------
 

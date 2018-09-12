@@ -7,15 +7,16 @@
 // @description:zh-CN	本脚本用于beian.chinamobile.com界面优化。1.美化UI，响应式布局，消灭滚动条。2.整合为单页应用，无刷新查询，无跳转实现批量上传（左下角）。3.后续会增加自动化功能，新增或修改后自动上报。
 // @author				X.Da
 // @create				2018-06-10
-// @version				0.7.0
+// @version				0.7.1
 // @match				*://beian.chinamobile.com/*
 // @match				*://10.1.68.22/*
 // @match				*://10.1.68.37/*
 // @namespace			beian-chinamobile
 // @license				MIT
 // @copyright			2018, X.Da
-// @lastmodified		2018-09-06
+// @lastmodified		2018-09-12
 // @feedback-url		https://greasyfork.org/scripts/369426
+// @note				2018-09-12-V0.7.1	update for autoDelAndPost method
 // @note				2018-09-06-V0.7.0	test for autoDelAndPost method
 // @note				2018-07-26-V0.6.4	might be the final release
 // @note				2018-07-10-V0.6.0	新增对集团安全管控平台（集团IP备案）的优化
@@ -41,7 +42,7 @@
 (function () {
 	'use strict';
 
-	var devVersion = "0.7.0";
+	var devVersion = "0.7.1";
 
 	// Ajax 特效
 	$("body").append('<style>.head{background:#94aedb}#load{position:absolute;top:0;bottom:0;left:0;right:0;z-index:200;}#load ._close{position:absolute;bottom:20px;left:0;height:50px;width:50px;font-size:100px;color:#000;cursor:pointer;line-height:50px;opacity:.2}.spinner{position:absolute;top:50%;left:50%;margin-top:-100px;margin-left:-300px;text-align:center}.spinner>div{width:200px;height:200px;background-color:#67CF22;border-radius:100%;display:inline-block;-webkit-animation:bouncedelay 1.4s infinite ease-in-out;animation:bouncedelay 1.4s infinite ease-in-out;-webkit-animation-fill-mode:both;animation-fill-mode:both}.spinner .bounce1{-webkit-animation-delay:-.32s;animation-delay:-.32s}.spinner .bounce2{-webkit-animation-delay:-.16s;animation-delay:-.16s}@-webkit-keyframes bouncedelay{0%,80%,100%{-webkit-transform:scale(0)}40%{-webkit-transform:scale(1)}}@keyframes bouncedelay{0%,80%,100%{transform:scale(0);-webkit-transform:scale(0)}40%{transform:scale(1);-webkit-transform:scale(1)}}</style><div id="load"><div class="_close" onclick="document.getElementById(&quot;load&quot;).style.display=&quot;none&quot;">×</div><div class="spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div></div>');
@@ -112,7 +113,7 @@
 	}
 
 	// 后台静默post提交
-	window.silencePost = function (url, formName, callback) {
+	window.silencePost = function (url, formName) {
 		var searchUrl = url + " #MainBody";
 		if (document.getElementById("xda_temp") == undefined) $("body").append('<div id="xda_temp" style="display:none;"></div>');
 		var __data;
@@ -139,7 +140,7 @@
 			$("#Main #major-content #page form").replaceWith($("#xda_temp #page form"));
 			setTimeout(adjustDataTable, 0);
 			$("#xda_temp").remove();
-			callback !== undefined && callback(); // 执行回调函数
+			querysubmit();
 		});
 		/*var searchUrl = url + " form[name='del_fm'] div";
 		$("form[name='del_fm']").load(searchUrl, serializeForm(qvo_fm), function() {
@@ -148,28 +149,34 @@
 		});*/
 	}
 
-	// 智能操作 - 自动删除并上报
+	// 智能操作 - 自动判断是删除还是上报
 	window.delAndPost = function () {
 		var length = $("#data_table tr.user-data").length;
 		var data = [];
+		var justPost = true;
 		window.sel_commit = "";
 		for (var i = 0; i < length; i++) {
 			// $("#data_table tr.user-data:eq(0) td.c_2").text().trim()
 			var c_1 = $("#data_table tr.user-data:eq(" + i + ") td.c_1").text().trim();
 			var ipstr = $("#data_table tr.user-data:eq(" + i + ") td.c_2").text().trim() + "-" + $("#data_table tr.user-data:eq(" + i + ") td.c_3").text().trim();
 			var c_4 = $("#data_table tr.user-data:eq(" + i + ") td.c_4").text().trim();
+			
 			if (c_4 == '自用') {
 				data.push({ "id": c_1, "ipstr": ipstr, "index": i });
 			} else {
 				for (var j in data) {
 					if (data[j]['ipstr'] == ipstr) {
-						// 同 IP 重复出现
-						$("#data_table input[name='sel'][value=" + data[j]["id"] + "]").attr("checked", true); // 自用的勾选删除
-						sel_commit += "&sel_commit=" + data[j]["id"];
-						sel_commit += "&sel_commit=" + c_1; // 记录 上报的 id
+						// 同 IP 重复出现，自用的勾选删除
+						$("#data_table input[name='sel'][value=" + data[j]["id"] + "]").attr("checked", true);
+						justPost = false;
+						// sel_commit += "&sel_commit=" + data[j]["id"];
+						// sel_commit += "&sel_commit=" + c_1;
 					}
 				}
 			}
+		}
+		if(justPost){
+
 		}
 		// 先删，再上报
 		silencePost("fp_xx_delete.jhtml", del_fm, function () {

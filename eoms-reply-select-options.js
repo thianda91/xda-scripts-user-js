@@ -8,7 +8,7 @@
 //
 
 var F = function(arg){
-G: function(g){return document.getElementById(arg).value;}
+G: function(){return document.getElementById(arg).value;}
 S: function(s){document.getElementById(arg).value=s;}
 }
 var $o = function(arg) {
