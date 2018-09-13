@@ -3,6 +3,10 @@
 if($==jQuery){window._cc=0;setInterval(function(){$.get("/page/resgroup/searchFrame.jsp",function(data){window._cc++;console.log('',(new Date()).toString().substr(11,9),window._cc)})},40000);}else{alert("没有 jQuery！");}
 window.flip=function(obj,url){var timeout=Math.round(Math.random()*60000+40000);clearTimeout(obj.flip);obj.flip=setTimeout(function timeoutFun(){$.get(url);timeout=Math.round(Math.random()*60000+40000);obj.flip=setTimeout(timeoutFun,timeout)},timeout)};var ff={};flip(ff,"/page/resgroup/searchFrame.jsp");
 
+// 综合资源管理系统防掉线
+
+if($==jQuery){window._cc=0;setInterval(function(){$.get("/irms",function(data){window._cc++;console.log('',(new Date()).toString().substr(11,9),window._cc)})},40000);}else{alert("没有 jQuery！");}
+http://rms.nmc.ln.cmcc:7002/irms
 
 // ITOM 自动巡检接入
 
