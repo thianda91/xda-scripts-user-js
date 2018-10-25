@@ -9,13 +9,14 @@ crt.Screen.Synchronous = True '执行脚本结果同步显示到屏幕
 	Set fso = CreateObject("Scripting.FileSystemObject")
 	Set objNetwork = CreateObject("Wscript.Network")  
 	strUser = objNetwork.UserName
-	Dim rootDir = "\\4A3-FTPTRANS01\ftptrans\" & strUser
-	fldr = rootDir & "\_dis-cu\dis-cu\" & year(Now) & "-" & Month(Now) & "-" & day(Now) & " " & Weekdayname(Weekday(now))
+	Dim rootDir
+	rootDir	= "\\4A3-FTPTRANS01\ftptrans\" & strUser
+	fldr = rootDir & "\_dis-cu\" & year(Now) & "-" & Month(Now) & "-" & day(Now) & " " & Weekdayname(Weekday(now))
 	tt = fso.FolderExists(fldr)
 	if tt<>true Then fso.CreateFolder(fldr)
 	Dim the_ip
-	the_ip=crt.Dialog.Prompt("输入该设备的IP或者名称-起文件名用:", "Enter IP or Name", "", false)
-	logfile = fldr & "\" & the_ip & "-dis cu-" & year(Now) & "-" & Month(Now) & "-" & day(Now) & ".txt"
+	the_ip=crt.Dialog.Prompt("Input for the log file name(tips: the ip or the description such as `bas02`):", "Enter IP or Name", "", false)
+	logfile = fldr & "\" & the_ip & "-dis_cu-" & year(Now) & "-" & Month(Now) & "-" & day(Now) & ".txt"
 	crt.Session.LogFileName = logfile
 	crt.Session.Log(True)
 

@@ -7,15 +7,16 @@
 // @description:zh-CN	本脚本用于beian.chinamobile.com界面优化。1.美化UI，响应式布局，消灭滚动条。2.整合为单页应用，无刷新查询，无跳转实现批量上传（左下角）。3.后续会增加自动化功能，新增或修改后自动上报。
 // @author				X.Da
 // @create				2018-06-10
-// @version				0.7.7
+// @version				0.8.0
 // @match				*://beian.chinamobile.com/*
 // @match				*://10.1.68.22/*
 // @match				*://10.1.68.37/*
 // @namespace			beian-chinamobile
 // @license				MIT
 // @copyright			2018, X.Da
-// @lastmodified		2018-10-19
+// @lastmodified		2018-10-26
 // @feedback-url		https://greasyfork.org/scripts/369426
+// @note				2018-10-26-V0.8.0	add showCurrIDs method, fixed auto login bugs
 // @note				2018-10-19-V0.7.7	add alertCurrIDs method
 // @note				2018-09-20-V0.7.6	fixed autoDelAndPost logic
 // @note				2018-09-13-V0.7.5	update for autoDelAndPost method
@@ -45,7 +46,7 @@
 (function () {
 	'use strict';
 
-	var devVersion = "0.7.7";
+	var devVersion = "0.8.0";
 
 	// Ajax 特效
 	$("body").append('<style>.head{background:#94aedb}#load{position:absolute;top:0;bottom:0;left:0;right:0;z-index:200;}#load ._close{position:absolute;bottom:20px;left:0;height:50px;width:50px;font-size:100px;color:#000;cursor:pointer;line-height:50px;opacity:.2}.spinner{position:absolute;top:50%;left:50%;margin-top:-100px;margin-left:-300px;text-align:center}.spinner>div{width:200px;height:200px;background-color:#67CF22;border-radius:100%;display:inline-block;-webkit-animation:bouncedelay 1.4s infinite ease-in-out;animation:bouncedelay 1.4s infinite ease-in-out;-webkit-animation-fill-mode:both;animation-fill-mode:both}.spinner .bounce1{-webkit-animation-delay:-.32s;animation-delay:-.32s}.spinner .bounce2{-webkit-animation-delay:-.16s;animation-delay:-.16s}@-webkit-keyframes bouncedelay{0%,80%,100%{-webkit-transform:scale(0)}40%{-webkit-transform:scale(1)}}@keyframes bouncedelay{0%,80%,100%{transform:scale(0);-webkit-transform:scale(0)}40%{transform:scale(1);-webkit-transform:scale(1)}}</style><div id="load"><div class="_close" onclick="document.getElementById(&quot;load&quot;).style.display=&quot;none&quot;">×</div><div class="spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div></div>');
@@ -79,6 +80,8 @@
 		$("#MainBody div:last").prepend('<div id="XiandaDiv" style="display: inline-block; float: left; width: 750px;"></div>');
 		$("#XiandaDiv").load("batch_fpxx_new.jhtml .yui-g", function () {
 			$("#XiandaDiv").html($("#XiandaDiv").html().replace(/[批量|下载]/g, ""));
+			// 强调“修改”按钮的颜色
+			$("#XiandaDiv #piliang1").css("background-color","blue");
 			// 去掉 验证文件下载 的链接（不知道干什么用的）
 			$("#XiandaDiv form a")[2].remove();
 			$("#XiandaDiv #file2").css("width", "380px");
@@ -183,7 +186,9 @@
 		if (justPost) {
 			// 仅上报
 			ChooseAll_comm('sel_commit');
-			setTimeout(commitsubmit, 100);
+			setTimeout(function(){
+				silencePost("fp_xx_upload.jhtml", del_fm);
+			}, 100);
 		} else {
 			// 需要先删除
 			silencePost("fp_xx_delete.jhtml", del_fm);
@@ -381,6 +386,8 @@
 				localStorage.setItem("xda_password", myform.password.value);
 				var password = $("#password");
 				var count = $("#count");
+				var pwdmw = $("#pwdmw");
+				pwdmw.val(password.val());
 				if (count.val() == "") {
 					password.val($.md5(password.val()));
 				}
@@ -441,14 +448,14 @@
 
 		// 调整 查询表单 的位置
 		$("#major-content table.t-detail tr:eq(1) td:eq(1)").append($("#major-content table.t-detail tr:eq(1) td:eq(2)").text()).append($("#major-content table.t-detail tr:eq(1) td:eq(3) select"));
-		$("#major-content table.t-detail tr:eq(1) td:eq(2)").html('<span style="color: #088bff;font-size: 14px;">UI优化：<a href="https://github.com/thianda" target="_blank">X.Da</a></span>');
+		$("#major-content table.t-detail tr:eq(1) td:eq(2)").html('<span style="color: #088bff;font-size: 14px;">UI 优化：<a href="https://github.com/thianda" target="_blank">X.Da</a></span>');
 		//$("#major-content table.t-detail tr:eq(1) td:eq(3)").html($(".header .user").html());
 		//$("#major-content table.t-detail tr:eq(1) td:eq(3) .exit").css({"background":"url(../../images/v3/exit.gif) no-repeat","padding-left":"20px","color":"#102c93","margin":"0 20px"});
 		//$("#major-content table.t-detail tr:eq(1) td:eq(3)").css("text-align", "right");
 		$("#major-content table.t-detail tr:eq(4) td:eq(3)").html('<a href="https://greasyfork.org/zh-CN/scripts/369426-beian-chinamobile-beautifier/versions" target="_blank">Version</a>: ' + devVersion);
 
 		// 添加提示
-		$("#major-content table.t-detail tr:eq(4) td:eq(1)").html($("#major-content table.t-detail tr:eq(4) td:eq(1)").html().replace('格式：192.168.1.1', '<span style="color:red">结束ip留空，查询时会自动和起始ip相同</span>'));
+		$("#major-content table.t-detail tr:eq(4) td:eq(1)").html($("#major-content table.t-detail tr:eq(4) td:eq(1)").html().replace('格式：192.168.1.1', '<span style="color:red">结束 ip 留空，查询时会自动和起始 ip 相同</span>'));
 		$("#major-content table.t-detail tr:eq(4) td:eq(2)").text("");
 		$("#major-content table.t-detail tr:eq(8) td:eq(1) input:eq(1)").remove();
 		$("#major-content table.t-detail tr:eq(8) td:eq(1)").append('<a class="button" href="fp_xx_new.jhtml" target="_blank" style=" display:inline-block;">新增</a>');
@@ -480,17 +487,30 @@
 		});
 		$("#prevDown").click();
 
-		// 弹出 id 信息
-		$("#major-content form[name='qvo_fm'] td:last").prepend('<button id="alertCurrIDs" class="button" data-txt="no">弹出id信息</button>&nbsp;&nbsp;&nbsp;');
-		$("#alertCurrIDs").bind("click", function () {
+		// 显示 ID
+ 		$("#major-content form[name='qvo_fm'] td:last").prepend('<button id="showCurrIDs" class="button" data-txt="no">显示 ID </button>&nbsp;&nbsp;&nbsp;');
+		$("#showCurrIDs").bind("click", function () {
+			var resultDiv = $("#data_table td.c_1:eq(0)");
+			if (resultDiv.attr('rowspan') > 1) return false;
+			$("#data_table th.none_1").show();
 			var length = $("#data_table tr.user-data").length;
-			var result = ['当前页的id为：', '(可添加到模板最后一列)', null];
+			var result = [];
 			for (var i = 0; i < length; i++) {
 				var c_1 = $("#data_table tr.user-data:eq(" + i + ") td.c_1").text().trim();
+				$("#data_table th.none_10").text("ID");
 				$("#data_table tr.user-data:eq(" + i + ") td.c_10").text(c_1);
 				result.push(c_1);
 			}
-			alert(result.join("\n"));
+			resultDiv.show().html(result.join("<br>")).attr("rowspan",result.length).css({
+				"line-height": "31px",
+				"background-color": "#ddebf7",
+				"color": "#088bff"
+			});
+			var tip = '以上 ID 可添加的模板最后一列（单元格 T2），上传模板时选择“修改”。';
+			$("#data_table tbody").append('<tr><td class="serial c"></td><td id="tip" class="c_1" style="color:red;text-align:left" colspan=10>' + tip + '</td></tr>');
+			$("#data_table td.c_1:eq(0)")[0].onmouseover = function() {
+				selectText(this);
+			};
 			return false;
 		});
 
@@ -500,4 +520,22 @@
 			delAndPost();
 		});
 	});
+
+	// 选中 dom 的文字
+	window.selectText = function (element) {
+		if (typeof(element) === 'string') element = document.querySelector(element);
+		if (document.body.createTextRange) {
+			var range = document.body.createTextRange();
+			range.moveToElementText(element);
+			range.select();
+		} else if (window.getSelection) {
+			var selection = window.getSelection();
+			var range = document.createRange();
+			range.selectNodeContents(element);
+			selection.removeAllRanges();
+			selection.addRange(range);
+		} else {
+			console.error("cannot selectText");
+		}
+	}
 })();
