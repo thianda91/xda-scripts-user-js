@@ -411,8 +411,8 @@
 		}
 
 		// 自动跳转到查询页
-		if (location.href.match("//beian.chinamobile.com/ismmobile/index/index.jhtml")) {
-			location.href = "/ismmobile/ipbak/fp_xx_list.jhtml";
+		if (location.href.match("//beian.chinamobile.com/index/index.jhtml")) {
+			location.href = "/ipbak/fp_xx_list.jhtml";
 			return;
 		}
 

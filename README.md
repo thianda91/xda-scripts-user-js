@@ -37,4 +37,4 @@ People who really understand can read this. People who really want to use it hav
 
 MIT.
 
-Please rember where it comes from: <https://github.com/thianda/beian-chinamobile>
+Please rember where it comes from: <https://github.com/thianda/xda-scripts-user-js>
