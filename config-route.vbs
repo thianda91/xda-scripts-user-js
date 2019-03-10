@@ -16,7 +16,7 @@ sub main()
 	Do Until oStdOut.AtEndOfStream
 		strLine = oStdOut.ReadLine
 		If InStr(strLine, "oa") > 0 Then
-			For counter = 1 To 12 '
+			For counter = 1 To 15 '
 				strLine = oStdOut.ReadLine
 				If InStr(strLine, "DHCP") > 0 Then
 					dhcp = Mid(strLine, InStr(strLine, ":") + 2)
@@ -28,8 +28,10 @@ sub main()
 						WScript.Quit
 					End If
 				End If
+				If InStr(strLine, "อ๘นุ") > 0 OR InStr(strLine, "gateway") > 0 Then
+					getway = Mid(strLine, InStr(strLine, ":") + 2)
+				End If
 			Next
-			getway = Mid(strLine, InStr(strLine, ":") + 2)
 		End If
 	loop
 

@@ -1,4 +1,4 @@
-from xdaLibs import config
+from xdaLibs import iniconfig
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -9,7 +9,7 @@ import time
 
 def autoLogin(url):
     configFile = 'config.work.ini'
-    conf = config.Config(configFile)
+    conf = iniconfig.IniConfig(configFile)
 
     username = conf.get('UIP','u')
     password = conf.get('UIP','p')
@@ -39,7 +39,7 @@ def autoLogin(url):
     browser.implicitly_wait(10)
 
     """打开对应的三级节点"""
-    nodes = conf.listSection('4A')
+    nodes = conf.listOptions('4A')
     flag = 0
     for x in nodes:
         if flag:
