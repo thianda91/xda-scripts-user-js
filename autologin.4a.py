@@ -9,7 +9,7 @@ import time
 
 def autoLogin(url):
     configFile = 'config.work.ini'
-    conf = iniconfig.IniConfig(configFile)
+    conf = iniconfig.IniConfig(configFile,encoding='gbk')
 
     username = conf.get('UIP','u')
     password = conf.get('UIP','p')
@@ -39,9 +39,9 @@ def autoLogin(url):
     browser.implicitly_wait(10)
 
     """打开对应的三级节点"""
-    nodes = conf.listOptions('4A')
+    node_names = conf.listOptions('4A')
     flag = 0
-    for x in nodes:
+    for x in node_names:
         if flag:
             browser.execute_script('window.open("'+browser.current_url+'")')
             browser.switch_to.window(browser.window_handles[-1])
@@ -49,8 +49,8 @@ def autoLogin(url):
         flag +=1
 
 
-"""打开到指定三级节点"""
-def openNode(browser, node='CMNET城域网'):
+def openNode(browser, node_name='CMNET城域网'):
+    """打开到指定三级节点"""
     browser.switch_to.default_content()
     browser.switch_to.frame('content')
     browser.switch_to.frame('leftFrame')
@@ -67,13 +67,22 @@ def openNode(browser, node='CMNET城域网'):
     tieling = cityEle.find_element(By.CSS_SELECTOR,'tr:nth-child(2) table:nth-child(1)')
     wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR,selector)))
     tieling.find_element(By.CSS_SELECTOR,selector).click()
-
-    group = tieling.find_elements(By.CSS_SELECTOR,'tr td span')
-    for x in group:
-        if x.text == node:
-            nd = x
-    nd.click()
-
+    nodes = tieling
+    node_names = node_name.split("-")
+    for nd in node_names:
+        """定位到 table 元素"""
+        nodes = nodes.find_elements(By.CSS_SELECTOR,'tr table')
+        for node in nodes:
+            """匹配当前的 node_name"""
+            span = node.find_element(By.CSS_SELECTOR,'tr td span')
+            if span.text == nd:
+                """继续展开，显示子节点"""
+                node.find_element(By.CSS_SELECTOR,selector).click()
+                wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR,selector)))
+                """点击节点显示资源"""
+                span.click()
+                nodes = node
+                break
     """按设备名称排序"""
     browser.switch_to.default_content()
     browser.switch_to.frame('content')
