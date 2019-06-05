@@ -23,6 +23,7 @@ crt.Screen.Synchronous = True '执行脚本结果同步显示到屏幕
 	crt.Screen.Send vbcr
 	crt.Screen.WaitForString ">"
 	'【判断6】执行命令
+	crt.Screen.Send chr(32) & "screen-length 0 temporary" & vbcr
 	crt.Screen.Send chr(32) & " sys" & vbcr
 	crt.Screen.Send vbcr & chr(32) & " dis cu"
 	crt.sleep 1000
