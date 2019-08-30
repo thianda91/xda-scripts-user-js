@@ -7,15 +7,16 @@
 // @description:zh-CN	本脚本用于beian.chinamobile.com界面优化。1.美化UI，响应式布局，消灭滚动条。2.整合为单页应用，无刷新查询，无跳转实现批量上传（左下角）。3.后续会增加自动化功能，新增或修改后自动上报。
 // @author				X.Da
 // @create				2018-06-10
-// @version				0.8.0
+// @version				0.9.0
 // @match				*://beian.chinamobile.com/*
 // @match				*://10.1.68.22/*
 // @match				*://10.1.68.37/*
 // @namespace			beian-chinamobile
 // @license				MIT
-// @copyright			2018, X.Da
-// @lastmodified		2018-10-26
+// @copyright			2018-2019, X.Da
+// @lastmodified		201-08-30
 // @feedback-url		https://greasyfork.org/scripts/369426
+// @note				2019-08-30-V0.9.0	update for adaptation
 // @note				2018-10-26-V0.8.0	add showCurrIDs method, fixed auto login bugs
 // @note				2018-10-19-V0.7.7	add alertCurrIDs method
 // @note				2018-09-20-V0.7.6	fixed autoDelAndPost logic
@@ -46,7 +47,7 @@
 (function () {
 	'use strict';
 
-	var devVersion = "0.8.0";
+	var devVersion = "0.9.0";
 
 	// Ajax 特效
 	$("body").append('<style>.head{background:#94aedb}#load{position:absolute;top:0;bottom:0;left:0;right:0;z-index:200;}#load ._close{position:absolute;bottom:20px;left:0;height:50px;width:50px;font-size:100px;color:#000;cursor:pointer;line-height:50px;opacity:.2}.spinner{position:absolute;top:50%;left:50%;margin-top:-100px;margin-left:-300px;text-align:center}.spinner>div{width:200px;height:200px;background-color:#67CF22;border-radius:100%;display:inline-block;-webkit-animation:bouncedelay 1.4s infinite ease-in-out;animation:bouncedelay 1.4s infinite ease-in-out;-webkit-animation-fill-mode:both;animation-fill-mode:both}.spinner .bounce1{-webkit-animation-delay:-.32s;animation-delay:-.32s}.spinner .bounce2{-webkit-animation-delay:-.16s;animation-delay:-.16s}@-webkit-keyframes bouncedelay{0%,80%,100%{-webkit-transform:scale(0)}40%{-webkit-transform:scale(1)}}@keyframes bouncedelay{0%,80%,100%{transform:scale(0);-webkit-transform:scale(0)}40%{transform:scale(1);-webkit-transform:scale(1)}}</style><div id="load"><div class="_close" onclick="document.getElementById(&quot;load&quot;).style.display=&quot;none&quot;">×</div><div class="spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div></div>');
@@ -77,14 +78,12 @@
 
 	// 添加批量操作功能到当前页
 	window.initPiLiang = function () {
-		$("#MainBody div:last").prepend('<div id="XiandaDiv" style="display: inline-block; float: left; width: 750px;"></div>');
-		$("#XiandaDiv").load("batch_fpxx_new.jhtml .yui-g", function () {
-			$("#XiandaDiv").html($("#XiandaDiv").html().replace(/[批量|下载]/g, ""));
+		$("#MainBody div:last").prepend('<div id="newDiv" style="display: inline-block; float: left; width: 750px;"></div>');
+		$("#newDiv").load("batch_fpxx_new.jhtml .yui-g", function () {
+			$("#newDiv").html($("#newDiv").html().replace(/[批量|下载]/g, ""));
 			// 强调“修改”按钮的颜色
-			$("#XiandaDiv #piliang1").css("background-color","blue");
-			// 去掉 验证文件下载 的链接（不知道干什么用的）
-			$("#XiandaDiv form a")[2].remove();
-			$("#XiandaDiv #file2").css("width", "380px");
+			$("#newDiv #piliang1").css("background-color", "blue");
+			$("#newDiv #file2").css("width", "380px");
 			// 所有操作从新窗口打开
 			fp_xx_new_fm.target = "_blank";
 			$(".yui-g a").attr("target", "_blank");
@@ -118,7 +117,7 @@
 		// 是否为查询
 		var notQuery = url != "fp_xx_list.jhtml";
 		var searchUrl = url + " #MainBody";
-		if (document.getElementById("xda_temp") == undefined) $("body").append('<div id="xda_temp" style="display:none;"></div>');
+		if (document.getElementById("new_temp") == undefined) $("body").append('<div id="new_temp" style="display:none;"></div>');
 		var __data;
 		// 参数 formName 为 序列化的 _data 或 form 对象
 		if (typeof formName === "string") {
@@ -128,10 +127,10 @@
 		}
 		if (notQuery && !/&/.test(__data)) {
 			// 非查询且 checkbox 无勾选
-			console.error(url+"\t%c非查询操作且 checkbox 无勾选。已停止操作。", "color:#088;font-size:18px");
+			console.error(url + "\t%c非查询操作且 checkbox 无勾选。已停止操作。", "color:#088;font-size:18px");
 			return;
 		}
-		$("#xda_temp").load(searchUrl, __data, function (data) {
+		$("#new_temp").load(searchUrl, __data, function (data) {
 			//var noticeReg = /\('NoticeBox[12]'\)" class="close">\[X\]<\/span><p style="text-align:left;">(.+)<b/;
 			var xda_data = data.replace(/[\t\r\n]/g, "");
 			var result = xda_data.match(/<div id="(NoticeBox[0-9])".+<\/p><\/div>/);
@@ -140,10 +139,10 @@
 				$("#major-content").before(result[0]);
 				$(".msg-box").css({ "position": "absolute", "left": "480px", "top": "10px", "width": "350px" });
 			}
-			$("#Main #major-content form[name='del_fm']").replaceWith($("#xda_temp form[name='del_fm']"));
-			$("#Main #major-content #page form").replaceWith($("#xda_temp #page form"));
+			$("#Main #major-content form[name='del_fm']").replaceWith($("#new_temp form[name='del_fm']"));
+			$("#Main #major-content #page form").replaceWith($("#new_temp #page form"));
 			setTimeout(adjustDataTable, 0);
-			$("#xda_temp").remove();
+			$("#new_temp").remove();
 			if (notQuery) querysubmit();
 		});
 		/*var searchUrl = url + " form[name='del_fm'] div";
@@ -151,8 +150,8 @@
 			document.getElementById("data_table").width = "100%";
 			del_fm.childNodes[1].style.width = "";
 		});*/
-	}	
-	
+	}
+
 	// 智能操作 - 自动判断是删除还是上报
 	window.delAndPost = function () {
 		var length = $("#data_table tr.user-data").length;
@@ -186,7 +185,7 @@
 		if (justPost) {
 			// 仅上报
 			ChooseAll_comm('sel_commit');
-			setTimeout(function(){
+			setTimeout(function () {
 				silencePost("fp_xx_upload.jhtml", del_fm);
 			}, 100);
 		} else {
@@ -411,8 +410,8 @@
 		}
 
 		// 自动跳转到查询页
-		if (location.href.match("//beian.chinamobile.com/index/index.jhtml")) {
-			location.href = "/ipbak/fp_xx_list.jhtml";
+		if (location.href.match("//beian.chinamobile.com/ismmobile/index/index.jhtml")) {
+			location.href = "/ismmobile/ipbak/fp_xx_list.jhtml";
 			return;
 		}
 
@@ -439,38 +438,46 @@
 		// 扩展显示主div到左侧边缘
 		document.getElementById("MainBody").style.marginLeft = 0;
 
-		// ip查询页(fp_xx_list.jhtml) 隐藏不常用的条件输入框
-		//if(location.pathname.indexOf("ismmobile/ipbak/fp_xx_list.jhtml")>0){
-		var __uselessLine = [0, 2, 5, 6, 7];
-		for (var i in __uselessLine) {
-			$("#major-content table.t-detail tr:eq(" + __uselessLine[i] + ")").hide();
-		}
-
-		// 调整 查询表单 的位置
+		// ***调整 查询表单 的位置***
+		$("#major-content table.t-detail input").attr("autocomplete", "off");
+		// 备案/操作状态 移到左侧
+		$("#major-content table.t-detail tr:eq(0) td:eq(1)").append($("#major-content table.t-detail tr:eq(0) td:eq(2)").text()).append($("#major-content table.t-detail tr:eq(0) td:eq(3) select"));
+		$("#major-content table.t-detail tr:eq(0) td:eq(2)").text('');
 		$("#major-content table.t-detail tr:eq(1) td:eq(1)").append($("#major-content table.t-detail tr:eq(1) td:eq(2)").text()).append($("#major-content table.t-detail tr:eq(1) td:eq(3) select"));
-		$("#major-content table.t-detail tr:eq(1) td:eq(2)").html('<span style="color: #088bff;font-size: 14px;">UI 优化：<a href="https://github.com/thianda" target="_blank">X.Da</a></span>');
+		$("#major-content table.t-detail tr:eq(1) td:eq(2)").text('');
+		// 添加 author
+		$("#major-content table.t-detail tr:eq(1) td:eq(2)").html('<span style="color: #088bff;font-size: 14px;">UI 优化：<a href="https://github.com/thianda91" target="_blank">X.Da</a></span>');
+		// 添加当前用户名及退出按钮
 		//$("#major-content table.t-detail tr:eq(1) td:eq(3)").html($(".header .user").html());
 		//$("#major-content table.t-detail tr:eq(1) td:eq(3) .exit").css({"background":"url(../../images/v3/exit.gif) no-repeat","padding-left":"20px","color":"#102c93","margin":"0 20px"});
 		//$("#major-content table.t-detail tr:eq(1) td:eq(3)").css("text-align", "right");
-		$("#major-content table.t-detail tr:eq(4) td:eq(3)").html('<a href="https://greasyfork.org/zh-CN/scripts/369426-beian-chinamobile-beautifier/versions" target="_blank">Version</a>: ' + devVersion);
-
-		// 添加提示
-		$("#major-content table.t-detail tr:eq(4) td:eq(1)").html($("#major-content table.t-detail tr:eq(4) td:eq(1)").html().replace('格式：192.168.1.1', '<span style="color:red">结束 ip 留空，查询时会自动和起始 ip 相同</span>'));
-		$("#major-content table.t-detail tr:eq(4) td:eq(2)").text("");
-		$("#major-content table.t-detail tr:eq(8) td:eq(1) input:eq(1)").remove();
-		$("#major-content table.t-detail tr:eq(8) td:eq(1)").append('<a class="button" href="fp_xx_new.jhtml" target="_blank" style=" display:inline-block;">新增</a>');
-		$("#major-content table.t-detail input").attr("autocomplete", "off");
+		// 添加提示-结束IP
+		$("#major-content table.t-detail tr:eq(3) td:eq(1)").html($("#major-content table.t-detail tr:eq(3) td:eq(1)").html().replace('格式：192.168.1.1', '<span style="color:red">结束 ip 留空，查询时会自动和起始 ip 相同</span>'));
+		// IP地址类型 已到左侧
+		$("#major-content table.t-detail tr:eq(0) td:eq(1)").append($("#major-content table.t-detail tr:eq(3) td:eq(2)").text()).append($("#major-content table.t-detail tr:eq(3) td:eq(3) select"));
+		$("#major-content table.t-detail tr:eq(3) td:eq(2)").text('');
+		// 添加版本信息
+		var devVersion = 'v0.0.0.0';
+		$("#major-content table.t-detail tr:eq(3) td:eq(2)").html('<a href="https://greasyfork.org/zh-CN/scripts/369426-beian-chinamobile-beautifier/versions" target="_blank">Version</a>: ' + devVersion);
+		// 修改新增按钮打开新页面
+		//$("#major-content table.t-detail tr:eq(7) td:eq(1) input:eq(1)").attr('onClick',"javaScript:window.open('fp_xx_new.jhtml')")
+		$("#major-content table.t-detail tr:eq(7) td:eq(1) input:eq(1)").remove();
+		$("#major-content table.t-detail tr:eq(7) td:eq(0)").append('<a class="button" href="fp_xx_new.jhtml" target="_blank" style=" display:inline-block;">新增</a>');
+		// 隐藏上方的批量操作按钮
+		//$("#major-content table.t-detail tr:eq(7) td.value input")[2].style.display = "none";
+		$("#major-content table.t-detail tr:eq(7) td.value input:eq(2)").remove();
+		// ip查询页(fp_xx_list.jhtml) 隐藏不常用的条件输入框
+		//if(location.pathname.indexOf("ismmobile/ipbak/fp_xx_list.jhtml")>0){
+		var __uselessLine = [2, 4, 5, 6];
+		for (var i in __uselessLine) {
+			$("#major-content table.t-detail tr:eq(" + __uselessLine[i] + ")").hide();
+		}
 
 		// 取消搜索结果div的宽度限制
 		adjustDataTable();
 
 		// 添加批量操作功能到当前页
 		initPiLiang();
-
-		// 隐藏上方的批量操作按钮
-		//$("#major-content table tr:eq(8) td.value input")[2].style.display = "none";
-		$("#major-content table tr:eq(8) td.value input:eq(2)").remove();
-
 		// 防掉线
 		$("#major-content form[name='qvo_fm'] td:last").prepend('<button id="prevDown" class="button" data-txt="no">开防掉线</button>');
 		$("#prevDown").bind("click", function () {
@@ -488,7 +495,7 @@
 		$("#prevDown").click();
 
 		// 显示 ID
- 		$("#major-content form[name='qvo_fm'] td:last").prepend('<button id="showCurrIDs" class="button" data-txt="no">显示 ID </button>&nbsp;&nbsp;&nbsp;');
+		$("#major-content form[name='qvo_fm'] td:last").prepend('<button id="showCurrIDs" class="button" data-txt="no">显示 ID </button>&nbsp;&nbsp;&nbsp;');
 		$("#showCurrIDs").bind("click", function () {
 			var resultDiv = $("#data_table td.c_1:eq(0)");
 			if (resultDiv.attr('rowspan') > 1) return false;
@@ -501,21 +508,21 @@
 				$("#data_table tr.user-data:eq(" + i + ") td.c_10").text(c_1);
 				result.push(c_1);
 			}
-			resultDiv.show().html(result.join("<br>")).attr("rowspan",result.length).css({
+			resultDiv.show().html(result.join("<br>")).attr("rowspan", result.length).css({
 				"line-height": "31px",
 				"background-color": "#ddebf7",
 				"color": "#088bff"
 			});
-			var tip = '以上 ID 可添加的模板最后一列（单元格 T2），上传模板时选择“修改”。';
+			var tip = '若上传模板时选择“修改”，可以将以上 ID 添加到模板的第一列（单元格 A3）';
 			$("#data_table tbody").append('<tr><td class="serial c"></td><td id="tip" class="c_1" style="color:red;text-align:left" colspan=10>' + tip + '</td></tr>');
-			$("#data_table td.c_1:eq(0)")[0].onmouseover = function() {
+			$("#data_table td.c_1:eq(0)")[0].onmouseover = function () {
 				selectText(this);
 			};
 			return false;
 		});
 
-		$("#XiandaDiv ~ input:eq(3)").attr("onclick", null).val("智能删&报").css("background-color", "blue");
-		$("#XiandaDiv ~ input:eq(3)").click(function () {
+		$("#newDiv ~ input:eq(3)").attr("onclick", null).val("智能删&报").css("background-color", "blue");
+		$("#newDiv ~ input:eq(3)").click(function () {
 			// 自动删除并上报
 			delAndPost();
 		});
@@ -523,14 +530,15 @@
 
 	// 选中 dom 的文字
 	window.selectText = function (element) {
-		if (typeof(element) === 'string') element = document.querySelector(element);
+		if (typeof (element) === 'string') element = document.querySelector(element);
+		var range;
 		if (document.body.createTextRange) {
-			var range = document.body.createTextRange();
+			range = document.body.createTextRange();
 			range.moveToElementText(element);
 			range.select();
 		} else if (window.getSelection) {
 			var selection = window.getSelection();
-			var range = document.createRange();
+			range = document.createRange();
 			range.selectNodeContents(element);
 			selection.removeAllRanges();
 			selection.addRange(range);
