@@ -7,15 +7,16 @@
 // @description:zh-CN	本脚本用于beian.chinamobile.com界面优化。1.美化UI，响应式布局，消灭滚动条。2.整合为单页应用，无刷新查询，无跳转实现批量上传（左下角）。3.后续会增加自动化功能，新增或修改后自动上报。
 // @author				X.Da
 // @create				2018-06-10
-// @version				0.9.0
+// @version				0.10.0
 // @match				*://beian.chinamobile.com/*
 // @match				*://10.1.68.22/*
 // @match				*://10.1.68.37/*
 // @namespace			beian-chinamobile
 // @license				MIT
 // @copyright			2018-2019, X.Da
-// @lastmodified		201-08-30
+// @lastmodified		201-09-05
 // @feedback-url		https://greasyfork.org/scripts/369426
+// @note				2019-09-05-V0.10.0	fixed bugs
 // @note				2019-08-30-V0.9.0	update for adaptation
 // @note				2018-10-26-V0.8.0	add showCurrIDs method, fixed auto login bugs
 // @note				2018-10-19-V0.7.7	add alertCurrIDs method
@@ -47,7 +48,7 @@
 (function () {
 	'use strict';
 
-	var devVersion = "0.9.0";
+	var devVersion = "0.10.0";
 
 	// Ajax 特效
 	$("body").append('<style>.head{background:#94aedb}#load{position:absolute;top:0;bottom:0;left:0;right:0;z-index:200;}#load ._close{position:absolute;bottom:20px;left:0;height:50px;width:50px;font-size:100px;color:#000;cursor:pointer;line-height:50px;opacity:.2}.spinner{position:absolute;top:50%;left:50%;margin-top:-100px;margin-left:-300px;text-align:center}.spinner>div{width:200px;height:200px;background-color:#67CF22;border-radius:100%;display:inline-block;-webkit-animation:bouncedelay 1.4s infinite ease-in-out;animation:bouncedelay 1.4s infinite ease-in-out;-webkit-animation-fill-mode:both;animation-fill-mode:both}.spinner .bounce1{-webkit-animation-delay:-.32s;animation-delay:-.32s}.spinner .bounce2{-webkit-animation-delay:-.16s;animation-delay:-.16s}@-webkit-keyframes bouncedelay{0%,80%,100%{-webkit-transform:scale(0)}40%{-webkit-transform:scale(1)}}@keyframes bouncedelay{0%,80%,100%{transform:scale(0);-webkit-transform:scale(0)}40%{transform:scale(1);-webkit-transform:scale(1)}}</style><div id="load"><div class="_close" onclick="document.getElementById(&quot;load&quot;).style.display=&quot;none&quot;">×</div><div class="spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div></div>');
@@ -201,7 +202,10 @@
 		// 自动补全 ipStr_end
 		if (qvo_fm.ipStr_end.value == "") qvo_fm.ipStr_end.value = qvo_fm.ipStr_begin.value;
 		// 添加参数，使单页最多显示1000条查询结果
-		$("#major-content table.t-detail tr:eq(7)").append('<td></td><td><input name="pSize" value="200"></td>');
+		var parent_p = $("#major-content table.t-detail tr:eq(6)");
+		if (parent_p.find('input[name="pSize"]').length == 0) {
+			parent_p.append('<td></td><td><input name="pSize" value="200"></td>');
+		}
 		if (document.resultform) resultform.pSize.value = 200;
 		silencePost("fp_xx_list.jhtml", qvo_fm);
 	}
@@ -411,7 +415,7 @@
 
 		// 自动跳转到查询页
 		if (location.href.match("//beian.chinamobile.com/ismmobile/index/index.jhtml")) {
-			location.href = "/ismmobile/ipbak/fp_xx_list.jhtml";
+			location.href = "/ismmobile/ipbak/fp_xx_list.jhtml?type=first";
 			return;
 		}
 
@@ -457,7 +461,6 @@
 		$("#major-content table.t-detail tr:eq(0) td:eq(1)").append($("#major-content table.t-detail tr:eq(3) td:eq(2)").text()).append($("#major-content table.t-detail tr:eq(3) td:eq(3) select"));
 		$("#major-content table.t-detail tr:eq(3) td:eq(2)").text('');
 		// 添加版本信息
-		var devVersion = 'v0.0.0.0';
 		$("#major-content table.t-detail tr:eq(3) td:eq(2)").html('<a href="https://greasyfork.org/zh-CN/scripts/369426-beian-chinamobile-beautifier/versions" target="_blank">Version</a>: ' + devVersion);
 		// 修改新增按钮打开新页面
 		//$("#major-content table.t-detail tr:eq(7) td:eq(1) input:eq(1)").attr('onClick',"javaScript:window.open('fp_xx_new.jhtml')")
