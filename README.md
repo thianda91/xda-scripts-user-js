@@ -1,3 +1,7 @@
+# scripts all-in-one
+
+> this repo is a collections of scripts for my work stuff. No more details for the usage.
+
 ## beian-chinamobile:bike: 
 
 This is a tampermonkey script for the domain :monkey:
@@ -37,4 +41,4 @@ People who really understand can read this. People who really want to use it hav
 
 MIT.
 
-Please rember where it comes from: <https://github.com/thianda/xda-scripts-user-js>
+Please rember where it comes from: <https://github.com/thianda91/xda-scripts-user-js>

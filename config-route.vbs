@@ -15,7 +15,7 @@ sub main()
 	Set oStdOut = oExec.StdOut
 	Do Until oStdOut.AtEndOfStream
 		strLine = oStdOut.ReadLine
-		If InStr(strLine, "oa") > 0 Then
+		If InStr(strLine, "OA") > 0 Then
 			For counter = 1 To 15 '
 				strLine = oStdOut.ReadLine
 				If InStr(strLine, "DHCP") > 0 Then

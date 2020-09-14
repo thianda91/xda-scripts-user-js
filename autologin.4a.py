@@ -7,13 +7,14 @@ from selenium.webdriver.support.wait import WebDriverWait
 import time
 
 
-def autoLogin(url):
+def autoLogin():
     configFile = 'config.work.ini'
     conf = iniconfig.IniConfig(configFile, encoding='gbk')
-
+    
     username = conf.get('UIP', 'u')
     password = conf.get('UIP', 'p')
     exe = conf.get('common', 'exe')
+    url = conf.get('common', 'url')
     # options = Options()
     # options.add_argument('--headless')
     # options.add_argument('--disable-gpu')
@@ -101,9 +102,8 @@ def openNode(browser, node_name='CMNET城域网'):
 
 if __name__ == "__main__":
     t0 = time.time()
-    url = 'http://4aportal.ln.cmcc/'
     try:
-        autoLogin(url)
+        autoLogin()
     except Exception as err:
         print(err)
     t = time.time()-t0

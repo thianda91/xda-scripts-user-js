@@ -53,7 +53,7 @@ def getInfo(td):
 def main():
     forder = 'host' + os.sep
     filenames = [i for i in os.listdir(forder) if '.html' in i]
-    result = []
+    result = [['ip', '高危', '中危', 'port', 'service', 'marks']]
     for f in filenames:
         no_danger = True
         fd = open(forder + f, mode='r', encoding='UTF-8')
@@ -91,6 +91,7 @@ def main():
         r.append('\t'.join(x))
     result = '\n'.join(r)
     pyperclip.copy(result)
+    print(result[0])
     # os.system('notepad python.txt')
     # import win32api
     # win32api.ShellExecute(0, 'open', 'notepad.exe', 'python.txt','',1)
