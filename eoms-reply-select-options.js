@@ -4,16 +4,14 @@
 // 直接复制粘贴底部的压缩版本即可。
 // 一键回单
 // Author X.Da
-// version 2.0
+// version 3.0
 //
 
 var F = function(arg){
 	G: function(g){return document.getElementById(arg).value;},
 	S: function(s){document.getElementById(arg).value=s;},
 };
-var $o = function(arg) {
-		return document.getElementById(arg);
-	};
+var $o = function(arg) {return document.getElementById(arg);};
 // 点击完成处理 按钮
 $o("bpp_Btn_ACCEPT")&&$o("bpp_Btn_ACCEPT").click();
 $o("bpp_ActPanel").currentStyle.display=="none"&&$o("bpp_Btn_T2Finish").click();
@@ -24,24 +22,54 @@ setTimeout(function() {
 	var _boolean = F("ClearINCTime").G()=="";
 	if (_boolean) {
 		// 无清除时间自动添加为当前时间
-		F("ClearINCTime").S((new Date()).pattern("yyyy-MM-dd hh:mm:ss"));
+		//F("ClearINCTime").S((new Date()).pattern("yyyy-MM-dd hh:mm:ss"));
+		alert('不要回单！\n没有上清除时间，看好咯！')
 	};	
 	// 可自定义回复规则
 	function sc(){
-		F("tth_region").S("城市");
-		F("ReasonType").S("传输线路");
-		F("ReasonSubType").S("传输线路故障");
-		F("FinishDealDesc").S("光缆质量下降，导致性能值不在标准范围内");
-		F("DealGuomodo").S("更换或修复故障纤芯后，故障恢复。");
-		F("isHomeService").S("否");
-	}
-	function other(){
-		F("tth_region").S("城市");
+		F("tth_region").S("农村");
 		F("ReasonType").S("数通设备");
-		F("ReasonSubType").S("告警自动恢复");
-		F("FinishDealDesc").S("告警自动恢复"); // 填写你的自定义故障原因
-		F("DealGuomodo").S("网管告警自动恢复"); // 填写你的自定义处理措施
+		F("ReasonSubType").S("传输原因");
+		F("FinishDealDesc").S("传输链路闪断造成");
+		F("DealGuomodo").S("检查线路传输质量");
 		F("isHomeService").S("否");
+		F("fault_recover").S("彻底恢复");
+	}
+	function dev(){
+		F("tth_region").S("农村");
+		F("ReasonType").S("数通设备");
+		F("ReasonSubType").S("设备原因");
+		F("FinishDealDesc").S("内存占用率过高");
+		F("DealGuomodo").S("清除冗余内存"); 
+		F("isHomeService").S("否");
+		F("fault_recover").S("彻底恢复");
+	}
+	function func_lost(){
+		F("tth_region").S("农村");
+		F("ReasonType").S("数通设备");
+		F("ReasonSubType").S("设备原因");
+		F("FinishDealDesc").S("防尘网需清洗");
+		F("DealGuomodo").S("清洗防尘网"); 
+		F("isHomeService").S("是");
+		F("fault_recover").S("彻底恢复");
+	}
+	function func_lost(){
+		F("tth_region").S("农村");
+		F("ReasonType").S("数通设备");
+		F("ReasonSubType").S("其他原因");
+		F("FinishDealDesc").S("手动down");
+		F("DealGuomodo").S("手动down"); 
+		F("isHomeService").S("是");
+		F("fault_recover").S("彻底恢复");
+	}
+	function optical(){
+		F("tth_region").S("农村");
+		F("ReasonType").S("数通设备");
+		F("ReasonSubType").S("设备原因");
+		F("FinishDealDesc").S("光模块松动或故障"); // 填写你的自定义故障原因
+		F("DealGuomodo").S("更换光模块"); // 填写你的自定义处理措施
+		F("isHomeService").S("是");
+		F("fault_recover").S("彻底恢复");
 	}
 	// 写入回复
 	sc();

@@ -1,7 +1,7 @@
 // 4A防掉线：
 
-if($==jQuery){window._cc=0;setInterval(function(){$.get("/page/resgroup/searchFrame.jsp",function(data){window._cc++;console.log('',(new Date()).toString().substr(11,9),window._cc)})},40000);}else{alert("没有 jQuery！");}
-window.flip=function(obj,url){var timeout=Math.round(Math.random()*60000+40000);clearTimeout(obj.flip);obj.flip=setTimeout(function timeoutFun(){$.get(url);timeout=Math.round(Math.random()*60000+40000);obj.flip=setTimeout(timeoutFun,timeout);},timeout);};var ff={};flip(ff,"/page/resgroup/searchFrame.jsp");
+if($==jQuery){window._cc=0;setInterval(function(){$.get("http://4aportal.ln.cmcc/page/resource/resourceQuery.do?method=listIni",function(data){window._cc++;console.log('',(new Date()).toString().substr(11,9),window._cc)})},40000);}else{alert("没有 jQuery！");}
+window.flip=function(obj,url){var timeout=Math.round(Math.random()*60000+40000);clearTimeout(obj.flip);obj.flip=setTimeout(function timeoutFun(){$.get(url);timeout=Math.round(Math.random()*60000+40000);obj.flip=setTimeout(timeoutFun,timeout);},timeout);};var ff={};flip(ff,"http://4aportal.ln.cmcc/page/resource/resourceQuery.do?method=listIni");
 
 // 综合资源管理系统防掉线
 

@@ -50,7 +50,7 @@ if __name__ == '__main__':
     file_name = 'ip.txt'
     out_file = 'output.txt'
     header = {
-        'User-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:80.0) Gecko/20100101 Firefox/80.0'
+        'User-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.182 Safari/537.36'
     }
     print('\n\t**********************************************')
     print('\tip 地址归属查询小工具 {}'.format(__version__))
