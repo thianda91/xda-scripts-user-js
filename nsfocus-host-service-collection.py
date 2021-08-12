@@ -3,7 +3,6 @@
 import os
 import re
 from bs4 import BeautifulSoup
-from xlsxwriter import Workbook
 import pyperclip
 
 

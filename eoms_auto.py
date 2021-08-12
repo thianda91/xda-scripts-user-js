@@ -1,4 +1,4 @@
-#!/bin/env python3
+#!python3
 
 # UserClick('%e7%94%b5%e5%ad%90%e8%bf%90%e8%a1%8c..','%2f_layouts%2fDocument%2fBridgeToSPControl.aspx%3fskipcode%3demoss')
 
@@ -15,7 +15,6 @@
 
 # from bs4 import BeautifulSoup as bs
 
-from typing_extensions import final
 from xdaLibs import iniconfig
 from selenium import webdriver
 from selenium.webdriver.ie.webdriver import WebDriver
@@ -30,7 +29,6 @@ from datetime import datetime
 import re
 import os
 import sys
-import dateutil
 import json
 import time
 import hmac
@@ -44,6 +42,12 @@ conf = iniconfig.IniConfig(configFile, encoding='gbk')
 username = conf.get('UIP', 'u')
 password = conf.get('UIP', 'p')
 exe = conf.get('common', 'exe')
+if '' == conf.get('UIP', 'proxies'):
+    proxies = None
+else:
+    proxies = {"http": conf.get('UIP', 'proxies')}
+
+print('proxies:', proxies)
 
 
 def datef(x=None):
@@ -66,7 +70,7 @@ def getBrowser(exe):
     return browser
 
 
-def autoLogin(browser):
+def autoLogin(browser: WebDriver) -> WebDriver:
     uip_url = 'http://uip.ln.cmcc/'
     browser.get(uip_url)
     browser.find_element(By.ID, 'UserName').clear()
@@ -84,16 +88,34 @@ def autoLogin(browser):
         browser.get(url)
         t = Timer(inc, loopRefresh, (inc, window_handle, url,))
         t.start()
-        # 5s
+        # 10min
     loopRefresh(600, browser.window_handles[0], uip_url)
     return browser
 
 
-def jumpToEOMS(browser: WebDriver, keyword='') -> list:
+def jumpToEOMS(browser: WebDriver) -> WebDriver:
     eoms_url = 'http://uip.ln.cmcc/_layouts/Document/BridgeToSPControl.aspx?skipcode=emoss'
     browser.get(eoms_url)
+    loginName = re.search('loginName=(.+)',browser.current_url)
+    if loginName == None:
+        exit()
+    else:
+        loginName = loginName.group(1)
+    eoms_new = 'http://10.204.137.51/api/auth/oauth/token?grant_type=sso&client_id=uip&client_secret=uip&token={}'
+    eoms_old = 'http://eoms.nmc.ln.cmcc/eoms4/portal/uiplogin.action?source=uip&loginName={}'
+    browser.get(eoms_old.format(loginName))
+    return browser
+
+
+def getOrders(browser: WebDriver, orderType='') -> list:
     # 故障处理工单(设备)：
-    todo_list_url = 'http://10.204.14.35/eoms4/sheetBpp/myWaitingDealSheetQueryGlobalTemplate.action?baseSchema=WF4_EL_TTM_TTH_EQU&var_pagesize=100'
+    if orderType == '[数据网]':
+        todo_list_url = 'http://10.204.14.35/eoms4/sheetBpp/myWaitingDealSheetQueryGlobalTemplate.action?baseSchema=WF4_EL_TTM_TTH_EQU&id=8a4c8e9f605487a9016057a5d21f016e&var_pagesize=100'
+        # todo_list_url = 'http://10.204.137.51/eoms/wait/?baseSchema=WF4_EL_TTM_TTH_EQU#/'
+    elif orderType == '[通知]':
+        todo_list_url = 'http://10.204.14.35/eoms4/sheet/myWaitingDealSheetQuery.action?baseSchema=WF4_EL_TTM_TTH_NOTICE&id=8a4c8ea376938d3d0176944e21980ab4&var_pagesize=100'
+    elif orderType == '[平台]':
+        todo_list_url = 'http://10.204.14.35/eoms4/sheet/myWaitingDealSheetQuery.action?baseSchema=WF4_EL_TTM_TTH_PLAT&id=8a4c8ea36d4783fb016d4855a49b088e&var_pagesize=100'
     browser.get(todo_list_url)
     total_ele = 'form#form1 span.pagenumber'
     total_element = browser.find_element(By.CSS_SELECTOR, total_ele)
@@ -119,7 +141,7 @@ def jumpToEOMS(browser: WebDriver, keyword='') -> list:
     i = 0
     for x in range(0, int(total)):
         title = todo_list[2*x+1]
-        if title.text.find(keyword) != -1:
+        if title.text.find(orderType) != -1:
             data.append({})
             data[i]['title'] = title.text[21:]
             content = todo_list[2*x].find_elements_by_tag_name('td')
@@ -128,15 +150,22 @@ def jumpToEOMS(browser: WebDriver, keyword='') -> list:
             data[i]['status'] = content[6].text
             data[i]['url'] = get_url(title)
             i += 1
+    return data
+
+
+def getOrderDetails(browser: WebDriver, data: list, orderType='') -> list:
     # 上清除时间的工单统计
     data2 = []
     # 未上清除时间统计
     data3 = []
     j = 0
-    for x in range(i):
+    for x in range(len(data)):
+        # 访问每一条工单
         browser.get(data[x]['url'])
         data[x]['clear_time'] = browser.find_element_by_id(
             'INC_Alarm_ClearTime').get_attribute('value')
+        data[x]['happn_time'] = browser.find_element_by_id(
+            'INC_HappenTime').get_attribute('value')
         title_match = re.search(r'([A-Z\-0-9]+) 上报 (.+)', data[x]['title'])
         try:
             data[x]['device'] = title_match.group(1)
@@ -151,21 +180,45 @@ def jumpToEOMS(browser: WebDriver, keyword='') -> list:
 
     # TODO 详细推送
     msg_title = '{}故障工单 {} 个，已上清除 {} 个。'
-    msg_title = msg_title.format(keyword, len(data), len(data2))
+    msg_title = msg_title.format(orderType, len(data), len(data2))
     find_time2, find_time3 = [], []
     if data2 != []:
         for x in data2:
-            find_time2.append(datef(x['find_time']))
+            find_time2.append(x['happn_time']+x['find_time'][-8:])
     if data3 != []:
         for x in data3:
-            find_time3.append(datef(x['find_time']))
-    msg_text = '### {}\n\n**已上清除建单时间分别为**：\n\n{}\n\n**未上清除建单时间分别为**：\n\n{}\n\n> 推送时间：{}'
+            find_time3.append(x['happn_time']+x['find_time'][-8:])
+    msg_text = '### {}\n\n> 推送时间：{}\n\n故障发生时间&建单时间如下\n\n**已上清除**：\n\n{}\n\n**未上清除**：\n\n{}'
     t2, t3 = '\n\n'.join(find_time2), '\n\n'.join(find_time3)
-    msg_text = msg_text.format(msg_title, t2, t3, datef())
+    msg_text = msg_text.format(msg_title, datef(), t2, t3)
     send_msg(msg_markdown(msg_title, msg_text, True))
 
-    browser.get(eoms_url)
+    jumpToEOMS(browser)
     return data, data2, data3
+
+
+def jumpToLevel3(browser: WebDriver):
+    # 故障管理工单(通知)
+    url = 'http://10.204.14.35/eoms4/sheet/myWaitingDealSheetQuery.action?baseSchema=WF4_EL_TTM_TTH_NOTICE&id=8a4c8ea376938d3d0176944e21980ab4'
+    browser.get(url)
+
+    def get_url(title_ele):
+        onclick = title_ele.find_element_by_tag_name(
+            'a').get_attribute('onclick')
+        args = re.findall(r'\'(.*?)\'', onclick)
+        # browser.execute_script('')
+        url = 'http://10.204.14.35/eoms4/sheet/openWaittingSheet.action?baseSchema={}&taskid={}&baseId={}&entryId=&version=&processType={}'
+        url = url.format(args[0], args[2], args[1], args[3])
+        # url = 'http://10.204.14.31:8001/bpp/ultrabpp/view.action?baseSchema={}&baseId={}&taskid={}&processType={}'
+        # url = url.format(args[0], args[1], args[2], args[3])
+        return url
+    ...
+
+    '''
+    #  故障管理工单(平台) (MDCN)
+    http://10.204.14.35/eoms4/sheet/myWaitingDealSheetQuery.action?baseSchema=WF4_EL_TTM_TTH_PLAT&id=8a4c8ea36d4783fb016d4855a49b088e
+
+    '''
 
 
 def batchAccept(browser: WebDriver):
@@ -213,7 +266,8 @@ def url_with_sign():
 
 def send_msg(msg):
     header = {'Content-Type': 'application/json; charset=utf-8'}
-    response = requests.post(url_with_sign(), headers=header, data=msg)
+    response = requests.post(
+        url_with_sign(), headers=header, data=msg, proxies=proxies)
     if response.status_code != 200:
         print('推送异常！')
         print(json.loads(response.text))
@@ -255,17 +309,22 @@ def msg_markdown(title: str, text: str, isAtAll: bool = False, atMobiles: str = 
 
 if __name__ == "__main__":
     ...
+
     def loop(inc):
-        try:
-            browser = getBrowser(exe)
-            autoLogin(browser)
-            jumpToEOMS(browser, '[数据网]')
-            browser.switch_to.default_content()
-            browser.quit()
-        except Exception as err:
-            print(err)
+        # try:
+        browser = getBrowser(exe)
+        autoLogin(browser)
+        jumpToEOMS(browser)
+        data = getOrders(browser, '[数据网]')
+        getOrderDetails(browser, data, '[数据网]')
+        browser.switch_to.default_content()
+        browser.quit()
+        # except Exception as err:
+        #     ...
+        #     print(err)
+        #     browser.quit()
         print('* 当前时间：', datef())
         t = Timer(inc, loop, (inc,))
         t.start()
-    loop(1800)
+    loop(3600)
     # exit()

@@ -10,12 +10,12 @@ http://rms.nmc.ln.cmcc:7002/irms
 
 // ITOM 自动巡检接入
 
-window.frames["contentFrame"].frames["parentFrameUserNameList"].document.getElementById("vo_connType").value='telnet';
+window.frames["contentFrame"].frames["parentFrameUserNameList"].document.getElementById("vo_connType").value='ssh2';
 window.frames["contentFrame"].frames["parentFrameUserNameList"].document.getElementById("vo_user").value='lnnmc';
-window.frames["contentFrame"].frames["parentFrameUserNameList"].document.getElementById("port").value='23';
+window.frames["contentFrame"].frames["parentFrameUserNameList"].document.getElementById("port").value='22';
 window.frames["contentFrame"].frames["parentFrameUserNameList"].document.getElementById("pwd1").value='nsml1234';
 window.frames["contentFrame"].frames["parentFrameUserNameList"].document.getElementById("pwd2").value='nsml1234';
-window.frames["contentFrame"].frames["parentFrameUserNameList"].document.getElementById("vo.cueSymbol").value='>';
+window.frames["iframepage"].frames["contentFrame"].frames["parentFrameUserNameList"].document.getElementById("vo.cueSymbol").value='>';
 window.frames["contentFrame"].frames["parentFrameUserNameList"].parentUnixShells.cycTableAddRow('tableId');
 window.frames["contentFrame"].frames["parentFrameUserNameList"].parentUnixShells.cycTableAddRow('tableId');
 window.frames["contentFrame"].frames["parentFrameUserNameList"].document.getElementById("all").click();

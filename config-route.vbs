@@ -2,11 +2,11 @@
 '''双网卡自动获取IP时的路由修改
 
 
-'Set WshShell = WScript.CreateObject("WScript.Shell")
-'runn = "schtasks /create /sc MINUTE /mo 10 /ru System /tn config-route /tr """ & Wscript.ScriptFullName & """"
-'msgbox(runn)
-'WshShell.Exec(runn)
-'WScript.Quit
+' Set WshShell = WScript.CreateObject("WScript.Shell")
+' runn = "schtasks /create /sc MINUTE /mo 10 /ru System /tn config-route /tr """ & Wscript.ScriptFullName & """"
+' msgbox(runn)
+' WshShell.Exec(runn)
+' WScript.Quit
 
 call main
 sub main()
@@ -15,7 +15,7 @@ sub main()
 	Set oStdOut = oExec.StdOut
 	Do Until oStdOut.AtEndOfStream
 		strLine = oStdOut.ReadLine
-		If InStr(strLine, "OA") > 0 Then
+		If InStr(strLine, "oa") > 0 Then
 			For counter = 1 To 15 '
 				strLine = oStdOut.ReadLine
 				If InStr(strLine, "DHCP") > 0 Then

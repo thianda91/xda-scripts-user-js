@@ -4,7 +4,7 @@ import os
 import re
 import pyperclip
 from bs4 import BeautifulSoup
-print("网址的扫描结果，有高危漏洞的如下：\n")
+print("网址的扫描结果，有高、中危漏洞的如下：\n")
 fd = open('index.html', mode='r', encoding='UTF-8')
 str = fd.read()
 fd.close()
@@ -16,8 +16,10 @@ pre_soup=soup.find("div",text="2.1站点风险等级列表").parent
 pre=pre_soup.tbody.find_all("tr")
 result=""
 for str in pre:
-  if int(str.find_all("td")[3].string)>0:
-    result=result+"网址\t"+str.a.string+"\t"+str.find_all("td")[3].string+"\r\n"
+  high_vul = str.find_all("td")[3].string
+  midile_vul = str.find_all("td")[4].string
+  if int(high_vul)>0 or int(midile_vul)>0:
+    result=result+"网址\t"+str.a.string+"\t"+high_vul+"\t"+midile_vul+"\r\n"
 print(result)
 pyperclip.copy(result)
 print("已复制到剪切板，直接到excel粘贴即可。")
