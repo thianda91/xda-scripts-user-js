@@ -21,9 +21,9 @@ sub main()
 				If InStr(strLine, "DHCP") > 0 Then
 					dhcp = Mid(strLine, InStr(strLine, ":") + 2)
 					If dhcp = "否" Then
-						MsgBox("当前不是DHCP自动获取，无法执行！" & vbCrLf & "请先修改IP 为自动获取")
+						' MsgBox("当前不是DHCP自动获取，无法执行！" & vbCrLf & "请先修改IP 为自动获取")
 						currPath = createobject("Scripting.FileSystemObject").GetFolder(".").Path
-						MsgBox("本脚本所在路径：" & vbCrLf & currPath & vbCrLf & "即将自动打开")
+						' MsgBox("本脚本所在路径：" & vbCrLf & currPath & vbCrLf & "即将自动打开")
 						WshShell.Exec("explorer /select, " & Wscript.ScriptFullName)
 						WScript.Quit
 					End If
@@ -36,10 +36,10 @@ sub main()
 	loop
 
 	If getway = "" Then
-		'MsgBox("内网网关为空，正常")
+		' MsgBox("内网网关为空，正常")
 		Exit sub
 	Else
 		WshShell.Exec("route delete 0.0.0.0 mask 0.0.0.0 10.61.214.1")
-		'MsgBox("内网网关："&getway&"，现已删除")
+		' MsgBox("内网网关："&getway&"，现已删除")
 	End If
 End sub

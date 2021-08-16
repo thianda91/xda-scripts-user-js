@@ -96,7 +96,7 @@ def autoLogin(browser: WebDriver) -> WebDriver:
 def jumpToEOMS(browser: WebDriver) -> WebDriver:
     eoms_url = 'http://uip.ln.cmcc/_layouts/Document/BridgeToSPControl.aspx?skipcode=emoss'
     browser.get(eoms_url)
-    loginName = re.search('loginName=(.+)',browser.current_url)
+    loginName = re.search('loginName=(.+)', browser.current_url)
     if loginName == None:
         exit()
     else:
@@ -164,8 +164,10 @@ def getOrderDetails(browser: WebDriver, data: list, orderType='') -> list:
         browser.get(data[x]['url'])
         data[x]['clear_time'] = browser.find_element_by_id(
             'INC_Alarm_ClearTime').get_attribute('value')
-        data[x]['happn_time'] = browser.find_element_by_id(
+        data[x]['happen_time'] = browser.find_element_by_id(
             'INC_HappenTime').get_attribute('value')
+        data[x]['found_time'] = browser.find_element_by_id(
+            'INC_FoundTime').get_attribute('value')
         title_match = re.search(r'([A-Z\-0-9]+) 上报 (.+)', data[x]['title'])
         try:
             data[x]['device'] = title_match.group(1)
@@ -184,10 +186,12 @@ def getOrderDetails(browser: WebDriver, data: list, orderType='') -> list:
     find_time2, find_time3 = [], []
     if data2 != []:
         for x in data2:
-            find_time2.append(x['happn_time']+x['find_time'][-8:])
+            find_time2.append('{}, {}'.format(
+                x['happen_time'], datef(x['find_time'])[-8:]))
     if data3 != []:
         for x in data3:
-            find_time3.append(x['happn_time']+x['find_time'][-8:])
+            find_time3.append('{}, {}'.format(
+                x['happen_time'], datef(x['find_time'])[-8:]))
     msg_text = '### {}\n\n> 推送时间：{}\n\n故障发生时间&建单时间如下\n\n**已上清除**：\n\n{}\n\n**未上清除**：\n\n{}'
     t2, t3 = '\n\n'.join(find_time2), '\n\n'.join(find_time3)
     msg_text = msg_text.format(msg_title, datef(), t2, t3)
