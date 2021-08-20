@@ -35,13 +35,14 @@ import hmac
 import hashlib
 import base64
 import urllib.parse
+import urllib.request
 import requests
 
 configFile = 'dist/config.work.ini'
 conf = iniconfig.IniConfig(configFile, encoding='gbk')
 username = conf.get('UIP', 'u')
 password = conf.get('UIP', 'p')
-exe = conf.get('common', 'exe')
+exe = conf.get('common', 'exe_chrome')
 if '' == conf.get('UIP', 'proxies'):
     proxies = None
 else:
@@ -60,14 +61,15 @@ def datef(x=None):
 def datep(x): return datetime.strptime(x, '%Y-%m-%d %H:%M:%S')
 
 
-def getBrowser(exe):
+def getBrowser(exe, browser_type='chrome'):
     # options = Options()
     # options.add_argument('--headless')
     # options.add_argument('--disable-gpu')
     # options.add_argument('blink-settings=imagesEnabled=false')
-    browser = webdriver.Ie(executable_path=exe)
-    # browser = webdriver.Chrome(executable_path=exe)
-    return browser
+    if browser_type == 'ie':
+        return webdriver.Ie(executable_path=exe)
+    if browser_type == 'chrome':
+        return webdriver.Chrome(executable_path=exe)
 
 
 def autoLogin(browser: WebDriver) -> WebDriver:
@@ -83,7 +85,6 @@ def autoLogin(browser: WebDriver) -> WebDriver:
 
     def loopRefresh(inc, window_handle, url):
         # print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-
         browser.switch_to.window(window_handle)
         browser.get(url)
         t = Timer(inc, loopRefresh, (inc, window_handle, url,))
@@ -93,21 +94,59 @@ def autoLogin(browser: WebDriver) -> WebDriver:
     return browser
 
 
-def jumpToEOMS(browser: WebDriver) -> WebDriver:
+def jumpToEOMS(browser: WebDriver, version='new') -> WebDriver:
     eoms_url = 'http://uip.ln.cmcc/_layouts/Document/BridgeToSPControl.aspx?skipcode=emoss'
     browser.get(eoms_url)
-    loginName = re.search('loginName=(.+)', browser.current_url)
-    if loginName == None:
-        exit()
-    else:
-        loginName = loginName.group(1)
-    eoms_new = 'http://10.204.137.51/api/auth/oauth/token?grant_type=sso&client_id=uip&client_secret=uip&token={}'
-    eoms_old = 'http://eoms.nmc.ln.cmcc/eoms4/portal/uiplogin.action?source=uip&loginName={}'
-    browser.get(eoms_old.format(loginName))
+    # loginName = re.search('loginName=(.+)', browser.current_url)
+    # if loginName == None:
+    #     exit()
+    # else:
+    #     loginName = loginName.group(1)
+
+    # eoms_url = 'http://10.204.137.51/api/auth/oauth/token?grant_type=sso&client_id=uip&client_secret=uip&token={}'
+    # if version == 'old':
+    #     eoms_url = 'http://eoms.nmc.ln.cmcc/eoms4/portal/uiplogin.action?source=uip&loginName={}'
+
+    # browser.get(eoms_url.format(loginName))
+    browser.find_element_by_css_selector('div.{}eoms'.format(version)).click()
+    wait = WebDriverWait(browser, 5)
+    _selector = 'span.username' if version == 'new' else '#timeBox'
+    wait.until(EC.visibility_of_element_located(
+        (By.CSS_SELECTOR, _selector)))
+    # browser.get('http://10.204.137.51/eoms/')
     return browser
 
 
+def getOrdersNew(browser: WebDriver, orderType='') -> list:
+    # todo_list_url = 'http://10.204.137.51/eoms/wait/?baseSchema=WF4_EL_TTM_TTH_EQU#/'
+    query_url = 'http://10.204.137.51/api/query/query/querylist'
+    payload = {
+        "id": "wait",
+        "params": {
+            "basesummary": "[数据网]", "isfull": "1", "baseschema": "WF4_EL_TTM_TTH_EQU"
+        },
+        "sorter": {},
+        "pageNum": 1,
+        "pageSize": 200
+    }
+    jq = 'http://uip.ln.cmcc/_layouts/15/styles/css_4nd/js/jquery1.42.min.js'
+    jq = 'http://10.204.137.51/bpp/common/plugin/jquery/jquery-1.9.1.min.js'
+    jquery_str = urllib.request.urlopen(jq).read().decode()
+    browser.execute_script(jquery_str)
+    ajax_query = '''
+    $.post({},{{data:{}}})
+    '''.format(query_url, payload)
+    resp = browser.execute_script("return " + ajax_query)
+
+    # post_data = urllib.parse.urlencode(payload).encode('utf-8')
+    # req = urllib.request.Request(url=query_url, headers=headers, data=post_data, method='POST')
+    # response = urllib.request.urlopen(req)
+    # html = response.read().decode()
+    # data = json.loads(html)
+
+
 def getOrders(browser: WebDriver, orderType='') -> list:
+    jumpToEOMS(browser, 'old')
     # 故障处理工单(设备)：
     if orderType == '[数据网]':
         todo_list_url = 'http://10.204.14.35/eoms4/sheetBpp/myWaitingDealSheetQueryGlobalTemplate.action?baseSchema=WF4_EL_TTM_TTH_EQU&id=8a4c8e9f605487a9016057a5d21f016e&var_pagesize=100'
@@ -199,6 +238,122 @@ def getOrderDetails(browser: WebDriver, data: list, orderType='') -> list:
 
     jumpToEOMS(browser)
     return data, data2, data3
+
+
+def back(browser: WebDriver) -> None:
+    '''
+    跳转到最后打开的标签页
+    '''
+    browser.switch_to.window(browser.window_handles[-1])
+
+
+def open_in_newtab(browser: WebDriver, url='') -> WebDriver:
+    '''
+    在新标签页打开网址
+    '''
+    time.sleep(1)
+    back(browser)
+    browser.execute_script('open("'+url+'")')
+    back(browser)
+    time.sleep(1)
+    # browser.get(url)
+    return browser
+
+
+def wait_for_document(browser: WebDriver, frame_id='') -> None:
+    '''
+    等待 frame 加载完毕
+    '''
+    time.sleep(1)
+    browser.switch_to.frame(frame_id)
+    for i in range(20):
+        if browser.execute_script("return document.readyState") == "complete":
+            break
+        else:
+            time.sleep(1)
+    browser.switch_to.default_content()
+    return
+
+
+def auto_reply_NOTICE(browser: WebDriver) -> None:
+    '''
+    回复（通知）工单的操作
+    '''
+    todo_list_url = 'http://10.204.137.51/eoms/wait/?baseSchema=WF4_EL_TTM_TTH_NOTICE#/'
+    open_in_newtab(browser, todo_list_url)
+    while True:
+        back(browser)
+        trs = browser.find_elements_by_css_selector('tbody tr')
+        if len(trs) == 0:
+            break
+        trs[0].click()
+        time.sleep(1)
+        back(browser)
+        wait = WebDriverWait(browser, 5)
+        wait.until(EC.visibility_of_element_located(
+            (By.ID, 'DealInfoViewField_bpp')))
+        # browser.find_element_by_id('bpp_Btn_T1Finish').click()
+        # wait.until(EC.visibility_of_element_located(
+        #     (By.ID, 'DealDesc'))).send_keys('已知晓。')
+        wait_for_document('DealInfoViewField')
+        print('readyState: complete~~')
+        # browser.execute_script('ActionPanel.submit();')
+        try:
+            browser.close()
+        except:
+            ...
+
+    browser.close()
+    back(browser)
+    return
+
+
+def auto_reply_EQU(browser: WebDriver) -> None:
+    '''
+    回复（设备）工单的操作
+    '''
+    todo_list_url = 'http://10.204.137.51/eoms/wait/?baseSchema=WF4_EL_TTM_TTH_EQU#/'
+    open_in_newtab(browser, todo_list_url)
+    offset = 0
+    while True:
+        back(browser)
+        browser.execute_script('window.scrollTo(0, '+str(87*(offset+1))+');')
+        trs = browser.find_elements_by_css_selector('tbody tr')
+        if len(trs) - offset == 0:
+            break
+        if '铁岭延期申请审批组' in trs[offset].text:
+            # 跳过延期审批的工单
+            offset += 1
+            continue
+        trs[offset].click()
+        time.sleep(1)
+        back(browser)
+        wait = WebDriverWait(browser, 5)
+        # _clear_time = browser.find_element_by_id(
+        #     'INC_Alarm_ClearTime').get_attribute('value')
+        _clear_time = wait.until(EC.visibility_of_element_located(
+            (By.ID, 'INC_Alarm_ClearTime'))).get_attribute('value')
+        if _clear_time != '':
+            browser.execute_script('window.alert=function(){};')
+            browser.find_element_by_id('bpp_Btn_T2Finish').click()
+            wait.until(EC.visibility_of_element_located(
+                (By.ID, 'FromAlarmClearTime')))
+            browser.execute_script(
+                'F("tth_region").S("农村");F("ReasonType").S("数通设备");F("ReasonSubType").S("传输原因");F("FinishDealDesc").S("传输链路闪断造成");F("DealGuomodo").S("检查线路传输质量");F("isHomeService").S("否");F("fault_recover").S("彻底恢复");')
+            browser.execute_script(
+                'window.showModalDialog=function(){};ActionPanel.submit();')
+            # browser.find_element_by_css_selector('div.confirm button').click()
+            time.sleep(3)
+        else:
+            offset += 1
+        try:
+            browser.close()
+        except:
+            ...
+        print('offset', offset)
+    browser.close()
+    back(browser)
+    return
 
 
 def jumpToLevel3(browser: WebDriver):
@@ -311,22 +466,26 @@ def msg_markdown(title: str, text: str, isAtAll: bool = False, atMobiles: str = 
     return json_str
 
 
+def try_func(func: function) -> None:
+    try:
+        func()
+    except Exception as err:
+        print(err)
+
+
 if __name__ == "__main__":
     ...
 
     def loop(inc):
-        # try:
         browser = getBrowser(exe)
         autoLogin(browser)
         jumpToEOMS(browser)
+        try_func(auto_reply_EQU(browser))
+        try_func(auto_reply_NOTICE(browser))
         data = getOrders(browser, '[数据网]')
         getOrderDetails(browser, data, '[数据网]')
         browser.switch_to.default_content()
         browser.quit()
-        # except Exception as err:
-        #     ...
-        #     print(err)
-        #     browser.quit()
         print('* 当前时间：', datef())
         t = Timer(inc, loop, (inc,))
         t.start()
