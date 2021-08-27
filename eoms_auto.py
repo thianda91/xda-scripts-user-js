@@ -38,7 +38,7 @@ import urllib.parse
 import urllib.request
 import requests
 
-configFile = 'dist/config.work.ini'
+configFile = 'config.work.ini'
 conf = iniconfig.IniConfig(configFile, encoding='gbk')
 username = conf.get('UIP', 'u')
 password = conf.get('UIP', 'p')
@@ -59,6 +59,14 @@ def datef(x=None):
 
 
 def datep(x): return datetime.strptime(x, '%Y-%m-%d %H:%M:%S')
+
+
+def try_func(func, showErr=False) -> None:
+    try:
+        lambda: func()
+    except Exception as err:
+        if showErr:
+            print(err)
 
 
 def getBrowser(exe, browser_type='chrome'):
@@ -281,6 +289,7 @@ def auto_reply_NOTICE(browser: WebDriver) -> None:
     '''
     todo_list_url = 'http://10.204.137.51/eoms/wait/?baseSchema=WF4_EL_TTM_TTH_NOTICE#/'
     open_in_newtab(browser, todo_list_url)
+    basesn = ''
     while True:
         back(browser)
         trs = browser.find_elements_by_css_selector('tbody tr')
@@ -289,19 +298,20 @@ def auto_reply_NOTICE(browser: WebDriver) -> None:
         trs[0].click()
         time.sleep(1)
         back(browser)
-        wait = WebDriverWait(browser, 5)
+        # basesn1 = browser.find_element_by_id('bpp_BaseSN').text
+        # if basesn == basesn1:
+        #     continue
+        # else:
+        #     basesn = basesn1
+        wait = WebDriverWait(browser, 10)
         wait.until(EC.visibility_of_element_located(
             (By.ID, 'DealInfoViewField_bpp')))
-        # browser.find_element_by_id('bpp_Btn_T1Finish').click()
-        # wait.until(EC.visibility_of_element_located(
-        #     (By.ID, 'DealDesc'))).send_keys('已知晓。')
-        wait_for_document('DealInfoViewField')
-        print('readyState: complete~~')
-        # browser.execute_script('ActionPanel.submit();')
-        try:
-            browser.close()
-        except:
-            ...
+        browser.find_element_by_id('bpp_Btn_T1Finish').click()
+        wait.until(EC.visibility_of_element_located(
+            (By.ID, 'DealDesc'))).send_keys('已知晓。')
+        wait_for_document(browser, 'DealInfoViewField')
+        browser.execute_script('ActionPanel.submit();')
+        time.sleep(3)
 
     browser.close()
     back(browser)
@@ -325,7 +335,7 @@ def auto_reply_EQU(browser: WebDriver) -> None:
             # 跳过延期审批的工单
             offset += 1
             continue
-        trs[offset].click()
+        try_func(trs[offset].click(), True)
         time.sleep(1)
         back(browser)
         wait = WebDriverWait(browser, 5)
@@ -346,11 +356,7 @@ def auto_reply_EQU(browser: WebDriver) -> None:
             time.sleep(3)
         else:
             offset += 1
-        try:
-            browser.close()
-        except:
-            ...
-        print('offset', offset)
+        print('未上清除累计：', offset)
     browser.close()
     back(browser)
     return
@@ -466,13 +472,6 @@ def msg_markdown(title: str, text: str, isAtAll: bool = False, atMobiles: str = 
     return json_str
 
 
-def try_func(func: function) -> None:
-    try:
-        func()
-    except Exception as err:
-        print(err)
-
-
 if __name__ == "__main__":
     ...
 
@@ -480,8 +479,8 @@ if __name__ == "__main__":
         browser = getBrowser(exe)
         autoLogin(browser)
         jumpToEOMS(browser)
-        try_func(auto_reply_EQU(browser))
-        try_func(auto_reply_NOTICE(browser))
+        try_func(auto_reply_NOTICE(browser), True)
+        # try_func(auto_reply_EQU(browser), True)
         data = getOrders(browser, '[数据网]')
         getOrderDetails(browser, data, '[数据网]')
         browser.switch_to.default_content()
