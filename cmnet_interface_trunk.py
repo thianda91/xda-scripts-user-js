@@ -27,6 +27,7 @@ from pathlib import Path
 import pandas as pd
 from colorama import Fore, Back, Style, init
 import platform
+from datetime import datetime
 init(autoreset=True)
 if platform.system() == 'Windows':
     init(wrap=True)
@@ -34,6 +35,8 @@ file_names = Path().rglob('*.log')
 contents = []
 for file in file_names:
     if file == 'AutoRun.log':
+        continue
+    if '\\' in str(file):
         continue
     try:
         with open(file, encoding='utf-8') as f:
@@ -192,30 +195,31 @@ def get_lldp(content=[]) -> list:
         if r and r.start() < 3:
             break
         _list = re.split(r' +', value)
+        # print("_list:", Fore.BLUE+str(_list))
         # lldp.append([_list[0], _list[1], _list[2]])
         if len(_list) == 4 and _list[1] == 'has' and _list[3][:8] == 'neighbor':
             port2 = _list[0]
-            # print('port2',Back.BLUE+port2)
+            # print('port2', Back.BLUE+port2)
         elif value[:9] == 'Port ID  ':
             lldp_port = _list[2][1:]
             # print('Port ID',Fore.GREEN+lldp_port)
+        elif value[:18] == 'Port description  ':
+            lldp_desc = ''.join(_list[2:])[1:]
+            # print('System description',Fore.GREEN+lldp_desc)
         elif value[:13] == 'System name  ':
             lldp_device = _list[2][1:]
             # print('System name',Fore.GREEN+lldp_device)
-        elif value[:20] == 'System description  ':
-            lldp_desc = ''.join(_list[2:])[1:]
-            # print('System description',Fore.GREEN+lldp_desc)
-            lldp.append([port2, lldp_device, lldp_desc, lldp_port])
+            lldp.append([port2, lldp_desc, lldp_device, lldp_port])
         elif _list[0] == 'PortId:':
             lldp_port = _list[1]
             # print('PortId:',Fore.BLUE+lldp_port)
+        elif _list[0] == 'PortDesc:':
+            lldp_desc = ''.join(_list[1:])
+            # print('SysDesc',Fore.BLUE+lldp_desc)
         elif _list[0] == 'SysName:':
             lldp_device = _list[1]
             # print('SysName',Fore.BLUE+lldp_device)
-        elif _list[0] == 'SysDesc:':
-            lldp_desc = ''.join(_list[1:])
-            # print('SysDesc',Fore.BLUE+lldp_desc)
-            lldp.append([port2, lldp_device, lldp_desc, lldp_port])
+            lldp.append([port2, lldp_desc, lldp_device, lldp_port])
     return lldp
 
 
@@ -229,12 +233,14 @@ for content in contents:
     lldp = get_lldp(content)
     # print(lldp)
     df_interface = pd.DataFrame(
-        interfaces, columns=['device', 'frame', 'slot', 'port', 'trunk', 'status'])
-    df_desc = pd.DataFrame(desc, columns=['port', 'description'])
+        interfaces, columns=['设备名', '框', '槽', '端口', '所属聚合组', '状态'])
+    df_desc = pd.DataFrame(desc, columns=['端口', '描述'])
     df_lldp = pd.DataFrame(
-        lldp, columns=['port2', 'lldp_device', 'lldp_desc', 'lldp_port'])
-    data = df_interface.merge(df_desc, how='left', on='port').fillna('')
-    data['port2'] = data['port'].map(
+        lldp, columns=['port2', 'LLDP描述', 'LLDP对端设备', 'LLDP对端端口'])
+    # ['列1'] 为辅助列，用于其他表格 vlookup 
+    df_interface['列1'] = (df_interface['设备名']+"-"+df_interface['端口']).map(lambda port: port.replace('(10G)', '').replace('XG', 'G'))
+    data = df_interface.merge(df_desc, how='left', on='端口').fillna('')
+    data['port2'] = data['端口'].map(
         lambda port: port.replace('(10G)', '').replace('(100G)', ''))
     data = data.merge(df_lldp, how='left', on='port2').fillna('')
     data.drop('port2', axis=1, inplace=True)
@@ -242,9 +248,10 @@ for content in contents:
     # except Exception as err:
     #     print(Back.RED+str(err))
 
-datas.sort_values(by=['device', 'frame', 'slot'], inplace=True)
+datas.sort_values(by=['设备名', '框', '槽'], inplace=True)
 try:
-    writer = pd.ExcelWriter('output.xlsx')
+    writer = pd.ExcelWriter('output.{}.xlsx'.format(
+        datetime.now().strftime("%Y-%m-%d.%H_%M_%S")))
     datas.to_excel(writer, index=False)
     writer.save()
 except Exception as err:

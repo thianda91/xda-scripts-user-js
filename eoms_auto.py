@@ -47,8 +47,7 @@ if '' == conf.get('UIP', 'proxies'):
     proxies = None
 else:
     proxies = {"http": conf.get('UIP', 'proxies')}
-
-print('proxies:', proxies)
+    print('proxies:', proxies)
 
 
 def datef(x=None):
@@ -126,25 +125,35 @@ def jumpToEOMS(browser: WebDriver, version='new') -> WebDriver:
 
 
 def getOrdersNew(browser: WebDriver, orderType='') -> list:
-    # todo_list_url = 'http://10.204.137.51/eoms/wait/?baseSchema=WF4_EL_TTM_TTH_EQU#/'
-    query_url = 'http://10.204.137.51/api/query/query/querylist'
-    payload = {
-        "id": "wait",
-        "params": {
-            "basesummary": "[数据网]", "isfull": "1", "baseschema": "WF4_EL_TTM_TTH_EQU"
-        },
-        "sorter": {},
-        "pageNum": 1,
-        "pageSize": 200
-    }
-    jq = 'http://uip.ln.cmcc/_layouts/15/styles/css_4nd/js/jquery1.42.min.js'
-    jq = 'http://10.204.137.51/bpp/common/plugin/jquery/jquery-1.9.1.min.js'
-    jquery_str = urllib.request.urlopen(jq).read().decode()
-    browser.execute_script(jquery_str)
-    ajax_query = '''
-    $.post({},{{data:{}}})
-    '''.format(query_url, payload)
-    resp = browser.execute_script("return " + ajax_query)
+    '''
+    获取推送信息 新版eoms
+    '''
+    baseSchema = {'[数据网]':'WF4_EL_TTM_TTH_EQU','[通知]':'WF4_EL_TTM_TTH_NOTICE'}
+    todo_list_url = 'http://10.204.137.51/eoms/wait/?baseSchema={}#/'.format(baseSchema[orderType])
+    browser.get(todo_list_url)
+    total_element = browser.find_element(By.CSS_SELECTOR,'.ant-pagination-total-text')
+    total = re.search(r'[0-9]+', total_element.text).group()
+    todo_list = browser.find_elements(
+        By.CSS_SELECTOR, 'table#tab tr')[1:]
+    
+    # query_url = 'http://10.204.137.51/api/query/query/querylist'
+    # payload = {
+    #     "id": "wait",
+    #     "params": {
+    #         "basesummary": "[数据网]", "isfull": "1", "baseschema": "WF4_EL_TTM_TTH_EQU"
+    #     },
+    #     "sorter": {},
+    #     "pageNum": 1,
+    #     "pageSize": 200
+    # }
+    # jq = 'http://uip.ln.cmcc/_layouts/15/styles/css_4nd/js/jquery1.42.min.js'
+    # jq = 'http://10.204.137.51/bpp/common/plugin/jquery/jquery-1.9.1.min.js'
+    # jquery_str = urllib.request.urlopen(jq).read().decode()
+    # browser.execute_script(jquery_str)
+    # ajax_query = '''
+    # $.post({},{{data:{}}})
+    # '''.format(query_url, payload)
+    # resp = browser.execute_script("return " + ajax_query)
 
     # post_data = urllib.parse.urlencode(payload).encode('utf-8')
     # req = urllib.request.Request(url=query_url, headers=headers, data=post_data, method='POST')
@@ -154,6 +163,9 @@ def getOrdersNew(browser: WebDriver, orderType='') -> list:
 
 
 def getOrders(browser: WebDriver, orderType='') -> list:
+    '''
+    获取推送信息 旧
+    '''
     jumpToEOMS(browser, 'old')
     # 故障处理工单(设备)：
     if orderType == '[数据网]':
@@ -227,7 +239,6 @@ def getOrderDetails(browser: WebDriver, data: list, orderType='') -> list:
         else:
             data3.append(data[x])
 
-    # TODO 详细推送
     msg_title = '{}故障工单 {} 个，已上清除 {} 个。'
     msg_title = msg_title.format(orderType, len(data), len(data2))
     find_time2, find_time3 = [], []
@@ -339,6 +350,9 @@ def auto_reply_EQU(browser: WebDriver) -> None:
         time.sleep(1)
         back(browser)
         wait = WebDriverWait(browser, 5)
+        # 受理
+        # browser.find_element_by_id('bpp_Btn_ACCEPT').click()
+        # 回复
         # _clear_time = browser.find_element_by_id(
         #     'INC_Alarm_ClearTime').get_attribute('value')
         _clear_time = wait.until(EC.visibility_of_element_located(
@@ -480,7 +494,7 @@ if __name__ == "__main__":
         autoLogin(browser)
         jumpToEOMS(browser)
         try_func(auto_reply_NOTICE(browser), True)
-        # try_func(auto_reply_EQU(browser), True)
+        try_func(auto_reply_EQU(browser), True)
         data = getOrders(browser, '[数据网]')
         getOrderDetails(browser, data, '[数据网]')
         browser.switch_to.default_content()
