@@ -1,4 +1,5 @@
 #!python3
+# coding:utf-8
 
 '''
 screen-length 0 temporary
@@ -21,13 +22,22 @@ display lldp neighbor
 '''
 
 
-# init(autoreset=True)
-import re
-from pathlib import Path
-import pandas as pd
-from colorama import Fore, Back, Style, init
-import platform
 from datetime import datetime
+import platform
+from colorama import Fore, Back, Style, init
+import pandas as pd
+from pathlib import Path
+import re
+_version = '1.0'
+
+'''
+# ChangeLog
+
+### v1.0 (2021-09-30) 
+
+- 根据采集信息整理输出
+'''
+
 init(autoreset=True)
 if platform.system() == 'Windows':
     init(wrap=True)
@@ -237,8 +247,9 @@ for content in contents:
     df_desc = pd.DataFrame(desc, columns=['端口', '描述'])
     df_lldp = pd.DataFrame(
         lldp, columns=['port2', 'LLDP描述', 'LLDP对端设备', 'LLDP对端端口'])
-    # ['列1'] 为辅助列，用于其他表格 vlookup 
-    df_interface['列1'] = (df_interface['设备名']+"-"+df_interface['端口']).map(lambda port: port.replace('(10G)', '').replace('XG', 'G'))
+    # ['列1'] 为辅助列，用于其他表格 vlookup
+    df_interface['列1'] = (df_interface['设备名']+"-"+df_interface['端口']
+                          ).map(lambda port: port.replace('(10G)', '').replace('XG', 'G'))
     data = df_interface.merge(df_desc, how='left', on='端口').fillna('')
     data['port2'] = data['端口'].map(
         lambda port: port.replace('(10G)', '').replace('(100G)', ''))

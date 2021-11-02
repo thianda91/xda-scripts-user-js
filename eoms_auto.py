@@ -60,12 +60,14 @@ def datef(x=None):
 def datep(x): return datetime.strptime(x, '%Y-%m-%d %H:%M:%S')
 
 
-def try_func(func, showErr=False) -> None:
+def try_func(func, showErr=False) -> int:
+    ret = 0
     try:
-        lambda: func()
+        ret = func()
     except Exception as err:
         if showErr:
             print(err)
+    return ret
 
 
 def getBrowser(exe, browser_type='chrome'):
@@ -128,14 +130,17 @@ def getOrdersNew(browser: WebDriver, orderType='') -> list:
     '''
     获取推送信息 新版eoms
     '''
-    baseSchema = {'[数据网]':'WF4_EL_TTM_TTH_EQU','[通知]':'WF4_EL_TTM_TTH_NOTICE'}
-    todo_list_url = 'http://10.204.137.51/eoms/wait/?baseSchema={}#/'.format(baseSchema[orderType])
+    baseSchema = {'[数据网]': 'WF4_EL_TTM_TTH_EQU',
+                  '[通知]': 'WF4_EL_TTM_TTH_NOTICE'}
+    todo_list_url = 'http://10.204.137.51/eoms/wait/?baseSchema={}#/'.format(
+        baseSchema[orderType])
     browser.get(todo_list_url)
-    total_element = browser.find_element(By.CSS_SELECTOR,'.ant-pagination-total-text')
+    total_element = browser.find_element(
+        By.CSS_SELECTOR, '.ant-pagination-total-text')
     total = re.search(r'[0-9]+', total_element.text).group()
     todo_list = browser.find_elements(
         By.CSS_SELECTOR, 'table#tab tr')[1:]
-    
+
     # query_url = 'http://10.204.137.51/api/query/query/querylist'
     # payload = {
     #     "id": "wait",
@@ -212,7 +217,7 @@ def getOrders(browser: WebDriver, orderType='') -> list:
     return data
 
 
-def getOrderDetails(browser: WebDriver, data: list, orderType='') -> list:
+def getOrderDetails(browser: WebDriver, data: list, orderType='') -> list:  # 该函数即将弃用
     # 上清除时间的工单统计
     data2 = []
     # 未上清除时间统计
@@ -250,10 +255,10 @@ def getOrderDetails(browser: WebDriver, data: list, orderType='') -> list:
         for x in data3:
             find_time3.append('{}, {}'.format(
                 x['happen_time'], datef(x['find_time'])[-8:]))
-    msg_text = '### {}\n\n> 推送时间：{}\n\n故障发生时间&建单时间如下\n\n**已上清除**：\n\n{}\n\n**未上清除**：\n\n{}'
+    msg_content = '### {}\n\n> 推送时间：{}\n\n故障发生时间&建单时间如下\n\n**已上清除**：\n\n{}\n\n**未上清除**：\n\n{}'
     t2, t3 = '\n\n'.join(find_time2), '\n\n'.join(find_time3)
-    msg_text = msg_text.format(msg_title, datef(), t2, t3)
-    send_msg(msg_markdown(msg_title, msg_text, True))
+    msg_content = msg_content.format(msg_title, datef(), t2, t3)
+    send_msg(msg_markdown(msg_title, msg_content, True))
 
     jumpToEOMS(browser)
     return data, data2, data3
@@ -279,7 +284,7 @@ def open_in_newtab(browser: WebDriver, url='') -> WebDriver:
     return browser
 
 
-def wait_for_document(browser: WebDriver, frame_id='') -> None:
+def wait_for_frame_document_ready(browser: WebDriver, frame_id='') -> None:
     '''
     等待 frame 加载完毕
     '''
@@ -294,10 +299,11 @@ def wait_for_document(browser: WebDriver, frame_id='') -> None:
     return
 
 
-def auto_reply_NOTICE(browser: WebDriver) -> None:
+def auto_reply_NOTICE(browser: WebDriver) -> int:
     '''
     回复（通知）工单的操作
     '''
+    total = 0
     todo_list_url = 'http://10.204.137.51/eoms/wait/?baseSchema=WF4_EL_TTM_TTH_NOTICE#/'
     open_in_newtab(browser, todo_list_url)
     basesn = ''
@@ -320,19 +326,28 @@ def auto_reply_NOTICE(browser: WebDriver) -> None:
         browser.find_element_by_id('bpp_Btn_T1Finish').click()
         wait.until(EC.visibility_of_element_located(
             (By.ID, 'DealDesc'))).send_keys('已知晓。')
-        wait_for_document(browser, 'DealInfoViewField')
+        wait_for_frame_document_ready(browser, 'DealInfoViewField')
         browser.execute_script('ActionPanel.submit();')
+        total += 1
         time.sleep(3)
 
     browser.close()
     back(browser)
-    return
+    return total
 
 
-def auto_reply_EQU(browser: WebDriver) -> None:
+def is_element_exist(browser: WebDriver, css_selector):
+    try:
+        return browser.find_element(By.CSS_SELECTOR, css_selector)
+    except:
+        return False
+
+
+def auto_reply_EQU(browser: WebDriver) -> int:
     '''
     回复（设备）工单的操作
     '''
+    total = 0
     todo_list_url = 'http://10.204.137.51/eoms/wait/?baseSchema=WF4_EL_TTM_TTH_EQU#/'
     open_in_newtab(browser, todo_list_url)
     offset = 0
@@ -341,24 +356,45 @@ def auto_reply_EQU(browser: WebDriver) -> None:
         browser.execute_script('window.scrollTo(0, '+str(87*(offset+1))+');')
         trs = browser.find_elements_by_css_selector('tbody tr')
         if len(trs) - offset == 0:
+            # 列表为空或仅剩未上清除时间的单子，则结束循环
             break
-        if '铁岭延期申请审批组' in trs[offset].text:
-            # 跳过延期审批的工单
+        if not '[数据网]' in trs[offset].text:
+            # 跳过非[数据网]的工单
             offset += 1
             continue
         try_func(trs[offset].click(), True)
         time.sleep(1)
         back(browser)
-        wait = WebDriverWait(browser, 5)
+        # browser.execute_script('window.scrollTo(0, 5000);')
         # 受理
-        # browser.find_element_by_id('bpp_Btn_ACCEPT').click()
+        btn_accept = is_element_exist(browser, '#bpp_Btn_ACCEPT')
+        if btn_accept:
+            btn_accept.click()
+            time.sleep(8)
+            continue
+        # 延期处理
+        if is_element_exist(browser, '#INC_IsApplyResult'):
+            browser.execute_script('F("INC_IsApplyResult").S("是");')
+            browser.execute_script(
+                'window.showModalDialog=function(){};ActionPanel.submit();')
+            time.sleep(3)
+            continue
         # 回复
-        # _clear_time = browser.find_element_by_id(
-        #     'INC_Alarm_ClearTime').get_attribute('value')
+        wait = WebDriverWait(browser, 5)
         _clear_time = wait.until(EC.visibility_of_element_located(
             (By.ID, 'INC_Alarm_ClearTime'))).get_attribute('value')
+        _deal_out_time = browser.find_element_by_id(
+            'BaseDealOutTime').get_attribute('value')
         if _clear_time != '':
             browser.execute_script('window.alert=function(){};')
+            if (datep(_deal_out_time)-datetime.now()).total_seconds() < 0:
+                # 处理时限 < 当前时间，则延期
+                browser.find_element_by_id('bpp_Btn_T2Apply').click()
+                browser.find_element_by_id('INC_ApplyDesc').send_keys('申请延期')
+                browser.execute_script(
+                    'window.showModalDialog=function(){};ActionPanel.submit();')
+                time.sleep(3)
+                continue
             browser.find_element_by_id('bpp_Btn_T2Finish').click()
             wait.until(EC.visibility_of_element_located(
                 (By.ID, 'FromAlarmClearTime')))
@@ -367,13 +403,18 @@ def auto_reply_EQU(browser: WebDriver) -> None:
             browser.execute_script(
                 'window.showModalDialog=function(){};ActionPanel.submit();')
             # browser.find_element_by_css_selector('div.confirm button').click()
+            total += 1
             time.sleep(3)
         else:
+            # 未上清除时间，暂不处理
+            back(browser)
             offset += 1
-        print('未上清除累计：', offset)
+            browser.close()
+            print('未上清除累计：', offset)
+        time.sleep(3)
     browser.close()
     back(browser)
-    return
+    return total
 
 
 def jumpToLevel3(browser: WebDriver):
@@ -493,10 +534,13 @@ if __name__ == "__main__":
         browser = getBrowser(exe)
         autoLogin(browser)
         jumpToEOMS(browser)
-        try_func(auto_reply_NOTICE(browser), True)
-        try_func(auto_reply_EQU(browser), True)
+        _notice_num = try_func(auto_reply_NOTICE(browser), True)
+        _equ_num = try_func(auto_reply_EQU(browser), True)
+        msg_title = '自动回复设备故障工单 {} 个，通知工单 {} 个。'
+        msg_title = msg_title.format(_equ_num, _notice_num)
+        send_msg(msg_markdown(msg_title, msg_title))
         data = getOrders(browser, '[数据网]')
-        getOrderDetails(browser, data, '[数据网]')
+        getOrderDetails(browser, data, '[数据网]')  # 该函数即将弃用
         browser.switch_to.default_content()
         browser.quit()
         print('* 当前时间：', datef())
