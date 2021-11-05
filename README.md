@@ -42,3 +42,12 @@ People who really understand can read this. People who really want to use it hav
 MIT.
 
 Please rember where it comes from: <https://github.com/thianda91/xda-scripts-user-js>
+
+## webdriver-for-selenium
+
+| 驱动           | 下载地址                                                  |
+| -------------- | --------------------------------------------------------- |
+| IEDriverServer | http://selenium-release.storage.googleapis.com/index.html |
+| chromedriver   | http://chromedriver.storage.googleapis.com/index.html     |
+| geckodriver    | https://github.com/mozilla/geckodriver/releases           |
+

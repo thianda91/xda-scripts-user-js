@@ -15,6 +15,7 @@
 
 # from bs4 import BeautifulSoup as bs
 
+from configparser import Error
 from xdaLibs import iniconfig
 from selenium import webdriver
 from selenium.webdriver.ie.webdriver import WebDriver
@@ -217,51 +218,26 @@ def getOrders(browser: WebDriver, orderType='') -> list:
     return data
 
 
-def getOrderDetails(browser: WebDriver, data: list, orderType='') -> list:  # 该函数即将弃用
-    # 上清除时间的工单统计
-    data2 = []
-    # 未上清除时间统计
-    data3 = []
-    j = 0
-    for x in range(len(data)):
-        # 访问每一条工单
-        browser.get(data[x]['url'])
-        data[x]['clear_time'] = browser.find_element_by_id(
-            'INC_Alarm_ClearTime').get_attribute('value')
-        data[x]['happen_time'] = browser.find_element_by_id(
-            'INC_HappenTime').get_attribute('value')
-        data[x]['found_time'] = browser.find_element_by_id(
-            'INC_FoundTime').get_attribute('value')
-        title_match = re.search(r'([A-Z\-0-9]+) 上报 (.+)', data[x]['title'])
+def getOrderDetails(browser: WebDriver) -> list:
+    alarm_desc = browser.find_element_by_id('INC_Alarm_Desc').text
+
+    def _find(_reg, _txt):
         try:
-            data[x]['device'] = title_match.group(1)
-            data[x]['event'] = title_match.group(2)
+            result = re.search(_reg, _txt).group(1)
         except:
-            pass
-        if data[x]['clear_time'] != '':
-            data2.append(data[x])
-            j += 1
-        else:
-            data3.append(data[x])
+            result = ''
+        return result
 
-    msg_title = '{}故障工单 {} 个，已上清除 {} 个。'
-    msg_title = msg_title.format(orderType, len(data), len(data2))
-    find_time2, find_time3 = [], []
-    if data2 != []:
-        for x in data2:
-            find_time2.append('{}, {}'.format(
-                x['happen_time'], datef(x['find_time'])[-8:]))
-    if data3 != []:
-        for x in data3:
-            find_time3.append('{}, {}'.format(
-                x['happen_time'], datef(x['find_time'])[-8:]))
-    msg_content = '### {}\n\n> 推送时间：{}\n\n故障发生时间&建单时间如下\n\n**已上清除**：\n\n{}\n\n**未上清除**：\n\n{}'
-    t2, t3 = '\n\n'.join(find_time2), '\n\n'.join(find_time3)
-    msg_content = msg_content.format(msg_title, datef(), t2, t3)
-    send_msg(msg_markdown(msg_title, msg_content, True))
-
-    jumpToEOMS(browser)
-    return data, data2, data3
+    alarm_title = _find(r'告警名称：(.+)', alarm_desc)
+    alarm_dev = _find(r'告警网元：(.+)', alarm_desc)
+    alarm_ip = _find(r'网元IP：(.+)', alarm_desc)
+    alarm_time = _find(r'告警时间：(.+)', alarm_desc)
+    alarm_port1 = _find(r'Trunk名称=(.+?) ', alarm_desc)
+    alarm_port2 = _find(r'接口名称=(.+) ', alarm_desc)
+    alarm_port3 = _find(r'端口名称=(.+) ', alarm_desc)
+    alarm_port_desc = _find(r'别名=(.+) ', alarm_desc)
+    alarm_info = _find(r'定位信息：(.+)端口备注', alarm_desc)
+    return '\n\n> '.join([alarm_title, alarm_dev, alarm_ip, alarm_time, alarm_port1, alarm_port2, alarm_port3, alarm_port_desc, alarm_info])
 
 
 def back(browser: WebDriver) -> None:
@@ -343,11 +319,12 @@ def is_element_exist(browser: WebDriver, css_selector):
         return False
 
 
-def auto_reply_EQU(browser: WebDriver) -> int:
+def auto_reply_EQU(browser: WebDriver) -> list:
     '''
     回复（设备）工单的操作
     '''
     total = 0
+    details = []
     todo_list_url = 'http://10.204.137.51/eoms/wait/?baseSchema=WF4_EL_TTM_TTH_EQU#/'
     open_in_newtab(browser, todo_list_url)
     offset = 0
@@ -406,7 +383,9 @@ def auto_reply_EQU(browser: WebDriver) -> int:
             total += 1
             time.sleep(3)
         else:
-            # 未上清除时间，暂不处理
+            # 未上清除时间，获取工单详细信息
+            detail = getOrderDetails(browser)
+            details.append(detail)
             back(browser)
             offset += 1
             browser.close()
@@ -414,31 +393,7 @@ def auto_reply_EQU(browser: WebDriver) -> int:
         time.sleep(3)
     browser.close()
     back(browser)
-    return total
-
-
-def jumpToLevel3(browser: WebDriver):
-    # 故障管理工单(通知)
-    url = 'http://10.204.14.35/eoms4/sheet/myWaitingDealSheetQuery.action?baseSchema=WF4_EL_TTM_TTH_NOTICE&id=8a4c8ea376938d3d0176944e21980ab4'
-    browser.get(url)
-
-    def get_url(title_ele):
-        onclick = title_ele.find_element_by_tag_name(
-            'a').get_attribute('onclick')
-        args = re.findall(r'\'(.*?)\'', onclick)
-        # browser.execute_script('')
-        url = 'http://10.204.14.35/eoms4/sheet/openWaittingSheet.action?baseSchema={}&taskid={}&baseId={}&entryId=&version=&processType={}'
-        url = url.format(args[0], args[2], args[1], args[3])
-        # url = 'http://10.204.14.31:8001/bpp/ultrabpp/view.action?baseSchema={}&baseId={}&taskid={}&processType={}'
-        # url = url.format(args[0], args[1], args[2], args[3])
-        return url
-    ...
-
-    '''
-    #  故障管理工单(平台) (MDCN)
-    http://10.204.14.35/eoms4/sheet/myWaitingDealSheetQuery.action?baseSchema=WF4_EL_TTM_TTH_PLAT&id=8a4c8ea36d4783fb016d4855a49b088e
-
-    '''
+    return [total, details]
 
 
 def batchAccept(browser: WebDriver):
@@ -534,13 +489,21 @@ if __name__ == "__main__":
         browser = getBrowser(exe)
         autoLogin(browser)
         jumpToEOMS(browser)
-        _notice_num = try_func(auto_reply_NOTICE(browser), True)
-        _equ_num = try_func(auto_reply_EQU(browser), True)
-        msg_title = '自动回复设备故障工单 {} 个，通知工单 {} 个。'
-        msg_title = msg_title.format(_equ_num, _notice_num)
-        send_msg(msg_markdown(msg_title, msg_title))
-        data = getOrders(browser, '[数据网]')
-        getOrderDetails(browser, data, '[数据网]')  # 该函数即将弃用
+        try:
+            _notice_num = auto_reply_NOTICE(browser)
+        except Exception as err:
+            print(err)
+        try:
+            _equ_num, details = auto_reply_EQU(browser)
+        except Exception as err:
+            print(err)
+        total = len(details)
+        details = '\n\n'.join(details) if not details == [] else '(空)'
+        msg_title = '已自动回复设备故障工单 {} 个，通知工单 {} 个。未上清除{}个。'
+        msg_title = msg_title.format(_equ_num, _notice_num, total)
+        msg_content = '### [数据网]{}\n\n> 推送时间：{}\n\n**详细信息**：\n\n> {}'
+        msg_content = msg_content.format(msg_title, datef(), details)
+        send_msg(msg_markdown(msg_title, msg_content, True))
         browser.switch_to.default_content()
         browser.quit()
         print('* 当前时间：', datef())
