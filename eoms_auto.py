@@ -38,7 +38,7 @@ import urllib.parse
 import urllib.request
 import requests
 
-configFile = 'dist/config.work.ini'
+configFile = 'config.work.ini'
 conf = iniconfig.IniConfig(configFile, encoding='gbk')
 username = conf.get('UIP', 'u')
 password = conf.get('UIP', 'p')
@@ -331,7 +331,7 @@ def auto_reply_EQU(browser: WebDriver) -> list:
     '''
     回复（设备）工单的操作
     '''
-    total = 0
+    num_accept, num_equ = 0, 0
     details = []
     todo_list_url = 'http://10.204.137.51/eoms/wait/?baseSchema=WF4_EL_TTM_TTH_EQU#/'
     open_in_newtab(browser, todo_list_url)
@@ -355,6 +355,7 @@ def auto_reply_EQU(browser: WebDriver) -> list:
         btn_accept = is_element_exist(browser, '#bpp_Btn_ACCEPT')
         if btn_accept:
             btn_accept.click()
+            num_accept += 1
             time.sleep(8)
             continue
         # 延期处理
@@ -388,7 +389,7 @@ def auto_reply_EQU(browser: WebDriver) -> list:
             browser.execute_script(
                 'window.showModalDialog=function(){};ActionPanel.submit();')
             # browser.find_element(By.CSS_SELECTOR, 'div.confirm button').click()
-            total += 1
+            num_equ += 1
             time.sleep(3)
         else:
             # 未上清除时间，获取工单详细信息
@@ -401,7 +402,7 @@ def auto_reply_EQU(browser: WebDriver) -> list:
         time.sleep(3)
     browser.close()
     back(browser)
-    return [total, details]
+    return [num_accept, num_equ, details]
 
 
 def batchAccept(browser: WebDriver):
@@ -493,29 +494,37 @@ def msg_markdown(title: str, text: str, isAtAll: bool = False, atMobiles: str = 
 if __name__ == "__main__":
     ...
 
-    def loop(inc):
-        browser = getBrowser(exe)
-        autoLogin(browser)
+    def loop(browser, inc, count, num_a, num_e, num_n):
+        # browser = getBrowser(exe)
+        # autoLogin(browser)
+        back(browser)
         jumpToEOMS(browser)
-        try:
-            _notice_num = auto_reply_NOTICE(browser)
-        except Exception as err:
-            print(err)
-        try:
-            _equ_num, details = auto_reply_EQU(browser)
-        except Exception as err:
-            print(err)
+        _notice_num = auto_reply_NOTICE(browser)
+        _accept_num, _equ_num, details = auto_reply_EQU(browser)
         total = len(details)
-        details = '\n\n'.join(details) if not details == [] else '(空)'
-        msg_title = '已自动回复设备故障工单 {} 个，通知工单 {} 个。未上清除{}个。'
-        msg_title = msg_title.format(_equ_num, _notice_num, total)
-        msg_content = '### [数据网]{}\n\n> 推送时间：{}\n\n**详细信息**：\n\n> {}'
-        msg_content = msg_content.format(msg_title, datef(), details)
-        send_msg(msg_markdown(msg_title, msg_content, True))
+        if count == 59:
+            details = '\n\n\n'.join(details) if not details == [] else '(空)'
+            msg_title = '设备故障工单未上清除{}个，受理{}个，回复{}个。通知工单回复{}个。（累积{}次推送）'
+            msg_title = msg_title.format(total, num_a, num_e, num_n, count)
+            msg_content = '### [数据网]{}\n\n> 推送时间：{}\n\n**详细信息**：\n\n> {}'
+            msg_content = msg_content.format(msg_title, datef(), details)
+            send_msg(msg_markdown(msg_title, msg_content, True))
+            count, num_a, num_e, num_n = 0, 0, 0, 0
         browser.switch_to.default_content()
-        browser.quit()
+        # browser.quit()
         print('* 当前时间：', datef())
-        t = Timer(inc, loop, (inc,))
+        count += 1
+        num_a += _accept_num
+        num_e += _equ_num
+        num_n += _notice_num
+        t = Timer(inc, loop, (browser, inc, count, num_a, num_e, num_n))
         t.start()
-    loop(3600)
+
+    browser = getBrowser(exe)
+    autoLogin(browser)
+    count, num_a, num_e, num_n = 59, 0, 0, 0
+    try:
+        loop(browser, 60, count, num_a, num_e, num_n)
+    except Exception as err:
+        print(err)
     # exit()
