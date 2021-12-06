@@ -15,13 +15,12 @@
 
 # from bs4 import BeautifulSoup as bs
 
-from configparser import Error
 from xdaLibs import iniconfig
 from selenium import webdriver
-from selenium.webdriver.ie.webdriver import WebDriver
-# from selenium.webdriver.chrome.webdriver import WebDriver
-from selenium.webdriver.ie.options import Options
-# from selenium.webdriver.chrome.options import Options
+# from selenium.webdriver.ie.webdriver import WebDriver
+from selenium.webdriver.chrome.webdriver import WebDriver
+# from selenium.webdriver.ie.options import Options
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
@@ -39,7 +38,7 @@ import urllib.parse
 import urllib.request
 import requests
 
-configFile = 'config.work.ini'
+configFile = 'dist/config.work.ini'
 conf = iniconfig.IniConfig(configFile, encoding='gbk')
 username = conf.get('UIP', 'u')
 password = conf.get('UIP', 'p')
@@ -49,6 +48,8 @@ if '' == conf.get('UIP', 'proxies'):
 else:
     proxies = {"http": conf.get('UIP', 'proxies')}
     print('proxies:', proxies)
+
+args = sys.argv[1:]
 
 
 def datef(x=None):
@@ -72,14 +73,15 @@ def try_func(func, showErr=False) -> int:
 
 
 def getBrowser(exe, browser_type='chrome'):
-    # options = Options()
-    # options.add_argument('--headless')
+    options = Options()
+    if '-w' in args:
+        options.add_argument('--headless')
     # options.add_argument('--disable-gpu')
     # options.add_argument('blink-settings=imagesEnabled=false')
     if browser_type == 'ie':
         return webdriver.Ie(executable_path=exe)
     if browser_type == 'chrome':
-        return webdriver.Chrome(executable_path=exe)
+        return webdriver.Chrome(options=options, executable_path=exe)
 
 
 def autoLogin(browser: WebDriver) -> WebDriver:
@@ -95,12 +97,17 @@ def autoLogin(browser: WebDriver) -> WebDriver:
 
     def loopRefresh(inc, window_handle, url):
         # print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-        browser.switch_to.window(window_handle)
-        browser.get(url)
-        t = Timer(inc, loopRefresh, (inc, window_handle, url,))
-        t.start()
+        try:
+            browser.switch_to.window(window_handle)
+            browser.get(url)
+            browser.back()
+            t = Timer(inc, loopRefresh, (inc, window_handle, url,))
+            t.start()
+        except Exception as err:
+            print('********autoLogin-loopRefresh-ERR********')
+            print(err)
         # 10min
-    loopRefresh(600, browser.window_handles[0], uip_url)
+    loopRefresh(650, browser.window_handles[0], uip_url)
     return browser
 
 
@@ -118,7 +125,7 @@ def jumpToEOMS(browser: WebDriver, version='new') -> WebDriver:
     #     eoms_url = 'http://eoms.nmc.ln.cmcc/eoms4/portal/uiplogin.action?source=uip&loginName={}'
 
     # browser.get(eoms_url.format(loginName))
-    browser.find_element_by_css_selector('div.{}eoms'.format(version)).click()
+    browser.find_element(By.CSS_SELECTOR, 'div.{}eoms'.format(version)).click()
     wait = WebDriverWait(browser, 5)
     _selector = 'span.username' if version == 'new' else '#timeBox'
     wait.until(EC.visibility_of_element_located(
@@ -191,8 +198,8 @@ def getOrders(browser: WebDriver, orderType='') -> list:
         By.CSS_SELECTOR, 'table#tab tr')[1:]
 
     def get_url(title_ele):
-        onclick = title_ele.find_element_by_tag_name(
-            'a').get_attribute('onclick')
+        onclick = title_ele.find_element(
+            By.TAG_NAME, 'a').get_attribute('onclick')
         args = re.findall(r'\'(.*?)\'', onclick)
         # browser.execute_script('')
         url = 'http://10.204.14.35/eoms4/sheet/openWaittingSheet.action?baseSchema={}&taskid={}&baseId={}&entryId=&version=&processType={}'
@@ -209,7 +216,7 @@ def getOrders(browser: WebDriver, orderType='') -> list:
         if title.text.find(orderType) != -1:
             data.append({})
             data[i]['title'] = title.text[21:]
-            content = todo_list[2*x].find_elements_by_tag_name('td')
+            content = todo_list[2*x].find_elements(By.TAG_NAME, 'td')
             data[i]['end_time'] = datep(content[4].text)
             data[i]['find_time'] = datep(content[5].text)
             data[i]['status'] = content[6].text
@@ -219,7 +226,7 @@ def getOrders(browser: WebDriver, orderType='') -> list:
 
 
 def getOrderDetails(browser: WebDriver) -> list:
-    alarm_desc = browser.find_element_by_id('INC_Alarm_Desc').text
+    alarm_desc = browser.find_element(By.ID, 'INC_Alarm_Desc').text
 
     def _find(_reg, _txt):
         try:
@@ -229,14 +236,15 @@ def getOrderDetails(browser: WebDriver) -> list:
         return result
 
     alarm_title = _find(r'告警名称：(.+)', alarm_desc)
-    alarm_dev = _find(r'告警网元：(.+)', alarm_desc)
-    alarm_ip = _find(r'网元IP：(.+)', alarm_desc)
+    # alarm_dev = _find(r'告警网元：(.+)', alarm_desc)
+    # alarm_ip = _find(r'网元IP：(.+)', alarm_desc)
     alarm_time = _find(r'告警时间：(.+)', alarm_desc)
-    alarm_port1 = _find(r'Trunk名称=(.+?) ', alarm_desc)
-    alarm_port2 = _find(r'接口名称=(.+) ', alarm_desc)
-    alarm_port3 = _find(r'端口名称=(.+) ', alarm_desc)
-    alarm_port_desc = _find(r'别名=(.+) ', alarm_desc)
+    # alarm_port1 = _find(r'Trunk名称=(.+?) ', alarm_desc)
+    # alarm_port2 = _find(r'接口名称=(.+) ', alarm_desc)
+    # alarm_port3 = _find(r'端口名称=(.+) ', alarm_desc)
+    # alarm_port_desc = _find(r'别名=(.+) ', alarm_desc)
     alarm_info = _find(r'定位信息：(.+)端口备注', alarm_desc)
+    return '\n\n> '.join([alarm_title, alarm_time, alarm_info+';'])
     return '\n\n> '.join([alarm_title, alarm_dev, alarm_ip, alarm_time, alarm_port1, alarm_port2, alarm_port3, alarm_port_desc, alarm_info])
 
 
@@ -285,13 +293,13 @@ def auto_reply_NOTICE(browser: WebDriver) -> int:
     basesn = ''
     while True:
         back(browser)
-        trs = browser.find_elements_by_css_selector('tbody tr')
+        trs = browser.find_elements(By.CSS_SELECTOR, 'tbody tr')
         if len(trs) == 0:
             break
         trs[0].click()
         time.sleep(1)
         back(browser)
-        # basesn1 = browser.find_element_by_id('bpp_BaseSN').text
+        # basesn1 = browser.find_element(By.ID, 'bpp_BaseSN').text
         # if basesn == basesn1:
         #     continue
         # else:
@@ -299,7 +307,7 @@ def auto_reply_NOTICE(browser: WebDriver) -> int:
         wait = WebDriverWait(browser, 10)
         wait.until(EC.visibility_of_element_located(
             (By.ID, 'DealInfoViewField_bpp')))
-        browser.find_element_by_id('bpp_Btn_T1Finish').click()
+        browser.find_element(By.ID, 'bpp_Btn_T1Finish').click()
         wait.until(EC.visibility_of_element_located(
             (By.ID, 'DealDesc'))).send_keys('已知晓。')
         wait_for_frame_document_ready(browser, 'DealInfoViewField')
@@ -331,7 +339,7 @@ def auto_reply_EQU(browser: WebDriver) -> list:
     while True:
         back(browser)
         browser.execute_script('window.scrollTo(0, '+str(87*(offset+1))+');')
-        trs = browser.find_elements_by_css_selector('tbody tr')
+        trs = browser.find_elements(By.CSS_SELECTOR, 'tbody tr')
         if len(trs) - offset == 0:
             # 列表为空或仅剩未上清除时间的单子，则结束循环
             break
@@ -360,26 +368,26 @@ def auto_reply_EQU(browser: WebDriver) -> list:
         wait = WebDriverWait(browser, 5)
         _clear_time = wait.until(EC.visibility_of_element_located(
             (By.ID, 'INC_Alarm_ClearTime'))).get_attribute('value')
-        _deal_out_time = browser.find_element_by_id(
-            'BaseDealOutTime').get_attribute('value')
+        _deal_out_time = browser.find_element(By.ID,
+                                              'BaseDealOutTime').get_attribute('value')
         if _clear_time != '':
             browser.execute_script('window.alert=function(){};')
             if (datep(_deal_out_time)-datetime.now()).total_seconds() < 0:
                 # 处理时限 < 当前时间，则延期
-                browser.find_element_by_id('bpp_Btn_T2Apply').click()
-                browser.find_element_by_id('INC_ApplyDesc').send_keys('申请延期')
+                browser.find_element(By.ID, 'bpp_Btn_T2Apply').click()
+                browser.find_element(By.ID, 'INC_ApplyDesc').send_keys('申请延期')
                 browser.execute_script(
                     'window.showModalDialog=function(){};ActionPanel.submit();')
                 time.sleep(3)
                 continue
-            browser.find_element_by_id('bpp_Btn_T2Finish').click()
+            browser.find_element(By.ID, 'bpp_Btn_T2Finish').click()
             wait.until(EC.visibility_of_element_located(
                 (By.ID, 'FromAlarmClearTime')))
             browser.execute_script(
                 'F("tth_region").S("农村");F("ReasonType").S("数通设备");F("ReasonSubType").S("传输原因");F("FinishDealDesc").S("传输链路闪断造成");F("DealGuomodo").S("检查线路传输质量");F("isHomeService").S("否");F("fault_recover").S("彻底恢复");')
             browser.execute_script(
                 'window.showModalDialog=function(){};ActionPanel.submit();')
-            # browser.find_element_by_css_selector('div.confirm button').click()
+            # browser.find_element(By.CSS_SELECTOR, 'div.confirm button').click()
             total += 1
             time.sleep(3)
         else:
