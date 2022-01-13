@@ -52,14 +52,16 @@ else:
 args = sys.argv[1:]
 
 
-def datef(x=None):
+def datef(x=None) -> str:
+    '''返回时间文本'''
     if x == None:
         return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     else:
         return x.strftime("%Y-%m-%d %H:%M:%S")
 
 
-def datep(x): return datetime.strptime(x, '%Y-%m-%d %H:%M:%S')
+'''时间类'''
+def datep(x) -> datetime: return datetime.strptime(x, '%Y-%m-%d %H:%M:%S')
 
 
 def try_func(func, showErr=False) -> int:
@@ -84,9 +86,12 @@ def getBrowser(exe, browser_type='chrome'):
         return webdriver.Chrome(options=options, executable_path=exe)
 
 
-def autoLogin(browser: WebDriver) -> WebDriver:
+def autoLogin(browser: WebDriver, keepalive=False) -> WebDriver:
     uip_url = 'http://uip.ln.cmcc/'
     browser.get(uip_url)
+    if 'Login' not in browser.current_url:
+        return browser
+
     browser.find_element(By.ID, 'UserName').clear()
     browser.find_element(By.ID, 'UserName').send_keys(username)
     browser.find_element(By.ID, 'password').clear()
@@ -106,8 +111,9 @@ def autoLogin(browser: WebDriver) -> WebDriver:
         except Exception as err:
             print('********autoLogin-loopRefresh-ERR********')
             print(err)
+    if keepalive:
         # 10min
-    loopRefresh(650, browser.window_handles[0], uip_url)
+        loopRefresh(611, browser.window_handles[0], uip_url)
     return browser
 
 
@@ -128,8 +134,7 @@ def jumpToEOMS(browser: WebDriver, version='new') -> WebDriver:
     browser.find_element(By.CSS_SELECTOR, 'div.{}eoms'.format(version)).click()
     wait = WebDriverWait(browser, 5)
     _selector = 'span.username' if version == 'new' else '#timeBox'
-    wait.until(EC.visibility_of_element_located(
-        (By.CSS_SELECTOR, _selector)))
+    wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, _selector)))
     # browser.get('http://10.204.137.51/eoms/')
     return browser
 
@@ -140,14 +145,11 @@ def getOrdersNew(browser: WebDriver, orderType='') -> list:
     '''
     baseSchema = {'[数据网]': 'WF4_EL_TTM_TTH_EQU',
                   '[通知]': 'WF4_EL_TTM_TTH_NOTICE'}
-    todo_list_url = 'http://10.204.137.51/eoms/wait/?baseSchema={}#/'.format(
-        baseSchema[orderType])
+    todo_list_url = 'http://10.204.137.51/eoms/wait/?baseSchema={}#/'.format(baseSchema[orderType])
     browser.get(todo_list_url)
-    total_element = browser.find_element(
-        By.CSS_SELECTOR, '.ant-pagination-total-text')
+    total_element = browser.find_element(By.CSS_SELECTOR, '.ant-pagination-total-text')
     total = re.search(r'[0-9]+', total_element.text).group()
-    todo_list = browser.find_elements(
-        By.CSS_SELECTOR, 'table#tab tr')[1:]
+    todo_list = browser.find_elements(By.CSS_SELECTOR, 'table#tab tr')[1:]
 
     # query_url = 'http://10.204.137.51/api/query/query/querylist'
     # payload = {
@@ -225,8 +227,16 @@ def getOrders(browser: WebDriver, orderType='') -> list:
     return data
 
 
-def getOrderDetails(browser: WebDriver) -> list:
+def getOrderDetail(browser: WebDriver) -> list:
+    '''
+    return [detail, alarm_origin_id] -> [list(), str()]
+    '''
     alarm_desc = browser.find_element(By.ID, 'INC_Alarm_Desc').text
+    base_sn = browser.find_element(By.ID, 'bpp_BaseSN').text  # 工单号
+    alarm_sn = browser.find_element(By.ID, 'INC_Alarm_SN').get_attribute('value')  # 告警流水号
+    alarm_origin_id = browser.find_element(By.ID, 'INC_Alarm_OriAlarmId').get_property('value')  # 原始告警号
+    # extra = '工单号 {}\n\n告警流水号 {}\n\n原始告警号 {}'.format(base_sn, alarm_sn, alarm_origin_id).split('\n\n')
+    extra = '{}\t{}\t铁岭\t城域网\t批量工单无清除时间\t{}'.format(base_sn, alarm_sn, alarm_origin_id)
 
     def _find(_reg, _txt):
         try:
@@ -243,9 +253,13 @@ def getOrderDetails(browser: WebDriver) -> list:
     # alarm_port2 = _find(r'接口名称=(.+) ', alarm_desc)
     # alarm_port3 = _find(r'端口名称=(.+) ', alarm_desc)
     # alarm_port_desc = _find(r'别名=(.+) ', alarm_desc)
-    alarm_info = _find(r'定位信息：(.+)端口备注', alarm_desc)
-    return '\n\n> '.join([alarm_title, alarm_time, alarm_info+';'])
-    return '\n\n> '.join([alarm_title, alarm_dev, alarm_ip, alarm_time, alarm_port1, alarm_port2, alarm_port3, alarm_port_desc, alarm_info])
+    alarm_info = _find(r'定位信息：(.+).口备注', alarm_desc)
+    if alarm_info == '':
+        alarm_info = _find(r'告警详情：\n([\s\S]+)', alarm_desc)
+    alarm_info = alarm_info.replace(' ', '_').replace('](', '_').replace('\n', ' \n')  # 为了转成 markdown 美观
+    # return '\n\n> '.join([alarm_title, alarm_time, alarm_info, *extra, ';']), alarm_origin_id
+    return '\n> '.join([alarm_title, alarm_time, alarm_info, ';']), extra
+    
 
 
 def back(browser: WebDriver) -> None:
@@ -287,7 +301,7 @@ def auto_reply_NOTICE(browser: WebDriver) -> int:
     '''
     回复（通知）工单的操作
     '''
-    total = 0
+    _notice_num = 0
     todo_list_url = 'http://10.204.137.51/eoms/wait/?baseSchema=WF4_EL_TTM_TTH_NOTICE#/'
     open_in_newtab(browser, todo_list_url)
     basesn = ''
@@ -312,12 +326,12 @@ def auto_reply_NOTICE(browser: WebDriver) -> int:
             (By.ID, 'DealDesc'))).send_keys('已知晓。')
         wait_for_frame_document_ready(browser, 'DealInfoViewField')
         browser.execute_script('ActionPanel.submit();')
-        total += 1
+        _notice_num += 1
         time.sleep(3)
 
     browser.close()
     back(browser)
-    return total
+    return _notice_num
 
 
 def is_element_exist(browser: WebDriver, css_selector):
@@ -332,7 +346,8 @@ def auto_reply_EQU(browser: WebDriver) -> list:
     回复（设备）工单的操作
     '''
     num_accept, num_equ = 0, 0
-    details = []
+    details = []  # 未上清除工单的详细信息
+    extras = ['']  # 未上清除工单的原始告警号等信息
     todo_list_url = 'http://10.204.137.51/eoms/wait/?baseSchema=WF4_EL_TTM_TTH_EQU#/'
     open_in_newtab(browser, todo_list_url)
     offset = 0
@@ -361,48 +376,45 @@ def auto_reply_EQU(browser: WebDriver) -> list:
         # 延期处理
         if is_element_exist(browser, '#INC_IsApplyResult'):
             browser.execute_script('F("INC_IsApplyResult").S("是");')
-            browser.execute_script(
-                'window.showModalDialog=function(){};ActionPanel.submit();')
+            browser.execute_script('window.showModalDialog=function(){};ActionPanel.submit();')
             time.sleep(3)
             continue
         # 回复
         wait = WebDriverWait(browser, 5)
-        _clear_time = wait.until(EC.visibility_of_element_located(
-            (By.ID, 'INC_Alarm_ClearTime'))).get_attribute('value')
-        _deal_out_time = browser.find_element(By.ID,
-                                              'BaseDealOutTime').get_attribute('value')
+        _clear_time = wait.until(EC.visibility_of_element_located((By.ID, 'INC_Alarm_ClearTime'))).get_attribute('value')
+        _deal_out_time = browser.find_element(By.ID, 'BaseDealOutTime').get_attribute('value')
         if _clear_time != '':
+            # 已上清除时间，正常回单或延期操作
             browser.execute_script('window.alert=function(){};')
             if (datep(_deal_out_time)-datetime.now()).total_seconds() < 0:
                 # 处理时限 < 当前时间，则延期
                 browser.find_element(By.ID, 'bpp_Btn_T2Apply').click()
                 browser.find_element(By.ID, 'INC_ApplyDesc').send_keys('申请延期')
-                browser.execute_script(
-                    'window.showModalDialog=function(){};ActionPanel.submit();')
+                browser.execute_script('window.showModalDialog=function(){};ActionPanel.submit();')
                 time.sleep(3)
                 continue
             browser.find_element(By.ID, 'bpp_Btn_T2Finish').click()
-            wait.until(EC.visibility_of_element_located(
-                (By.ID, 'FromAlarmClearTime')))
+            wait.until(EC.visibility_of_element_located((By.ID, 'FromAlarmClearTime')))
             browser.execute_script(
                 'F("tth_region").S("农村");F("ReasonType").S("数通设备");F("ReasonSubType").S("传输原因");F("FinishDealDesc").S("传输链路闪断造成");F("DealGuomodo").S("检查线路传输质量");F("isHomeService").S("否");F("fault_recover").S("彻底恢复");')
-            browser.execute_script(
-                'window.showModalDialog=function(){};ActionPanel.submit();')
+            browser.execute_script('window.showModalDialog=function(){};ActionPanel.submit();')
             # browser.find_element(By.CSS_SELECTOR, 'div.confirm button').click()
             num_equ += 1
             time.sleep(3)
         else:
             # 未上清除时间，获取工单详细信息
-            detail = getOrderDetails(browser)
+            detail, extra = getOrderDetail(browser)
             details.append(detail)
+            extras[0] = extras[0] + extra.split('\t')[-1] + ';'
+            extras.append(extra)
             back(browser)
             offset += 1
             browser.close()
-            print('未上清除累计：', offset)
+            print('\r未上清除累计：', offset, end='')
         time.sleep(3)
     browser.close()
     back(browser)
-    return [num_accept, num_equ, details]
+    return [num_accept, num_equ, details, extras]
 
 
 def batchAccept(browser: WebDriver):
@@ -453,7 +465,7 @@ def send_msg(msg):
     response = requests.post(
         url_with_sign(), headers=header, data=msg, proxies=proxies)
     if response.status_code != 200:
-        print('推送异常！')
+        print('推送DingTalk异常！')
         print(json.loads(response.text))
     # print(response.status_code)
 
@@ -476,6 +488,10 @@ def msg_text(text: str, isAtAll: bool = False, atMobiles: str = ''):
 
 
 def msg_markdown(title: str, text: str, isAtAll: bool = False, atMobiles: str = ''):
+    print('----msg_markdown----start------------')
+    print(title)
+    print(text)
+    print('----msg_markdown-----end-------------')
     data = {'msgtype': 'markdown', 'markdown': {'title': '', 'text': ''},
             'at': {'atMobiles': [], 'isAtAll': False}}
     data['markdown']['title'] = title
@@ -495,36 +511,43 @@ if __name__ == "__main__":
     ...
 
     def loop(browser, inc, count, num_a, num_e, num_n):
-        # browser = getBrowser(exe)
-        # autoLogin(browser)
-        back(browser)
-        jumpToEOMS(browser)
-        _notice_num = auto_reply_NOTICE(browser)
-        _accept_num, _equ_num, details = auto_reply_EQU(browser)
-        total = len(details)
-        if count == 59:
-            details = '\n\n\n'.join(details) if not details == [] else '(空)'
-            msg_title = '设备故障工单未上清除{}个，受理{}个，回复{}个。通知工单回复{}个。（累积{}次推送）'
-            msg_title = msg_title.format(total, num_a, num_e, num_n, count)
-            msg_content = '### [数据网]{}\n\n> 推送时间：{}\n\n**详细信息**：\n\n> {}'
-            msg_content = msg_content.format(msg_title, datef(), details)
-            send_msg(msg_markdown(msg_title, msg_content, True))
-            count, num_a, num_e, num_n = 0, 0, 0, 0
+        if count % 9 == 0:
+            autoLogin(browser)
+        try:
+            back(browser)
+            jumpToEOMS(browser)
+            _notice_num = auto_reply_NOTICE(browser)
+            _accept_num, _equ_num, details, extras = auto_reply_EQU(browser)
+            _un_clear = len(details)
+        except Exception as err:
+            print(err)
         browser.switch_to.default_content()
         # browser.quit()
-        print('* 当前时间：', datef())
-        count += 1
+        print('\r* 当前时间：{}，Loop：{}'.format(datef(), count), end='')
+        count -= 1
         num_a += _accept_num
         num_e += _equ_num
         num_n += _notice_num
+        if count == 0:
+            if details != []:
+                print('')
+                details = '\n\n'.join(details)
+                send_msg(msg_text('\n> '.join(extras)))
+            else:
+                details = '(空)'
+            msg_title = '设备故障工单未上清除{}个，受理{}个，回复{}个。通知工单回复{}个。'
+            msg_title = msg_title.format(_un_clear, num_a, num_e, num_n, count)
+            msg_content = '### [数据网]{}\n\n> 推送时间：{}\n\n#### 详细信息：\n\n {}'
+            msg_content = msg_content.format(msg_title, datef(), details)
+            send_msg(msg_markdown(msg_title, msg_content, True))
+            count = 55
+            num_a, num_e, num_n = 0, 0, 0
         t = Timer(inc, loop, (browser, inc, count, num_a, num_e, num_n))
         t.start()
 
     browser = getBrowser(exe)
     autoLogin(browser)
-    count, num_a, num_e, num_n = 59, 0, 0, 0
-    try:
-        loop(browser, 60, count, num_a, num_e, num_n)
-    except Exception as err:
-        print(err)
+    count = 1
+    num_a, num_e, num_n = 0, 0, 0
+    loop(browser, 60, count, num_a, num_e, num_n)
     # exit()
