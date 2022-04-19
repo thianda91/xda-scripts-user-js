@@ -1,5 +1,5 @@
 #! etc/bin/bash
-grep 'Ethernet' 1.txt 
+grep 'Ethernet' 1.txt
 
 
 
