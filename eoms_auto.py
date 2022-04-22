@@ -15,7 +15,6 @@
 
 # from bs4 import BeautifulSoup as bs
 
-from numpy import true_divide
 from xdaLibs import iniconfig
 from selenium import webdriver
 # from selenium.webdriver.ie.webdriver import WebDriver
@@ -67,6 +66,17 @@ def datef(x=None) -> str:
 def datep(x) -> datetime: return datetime.strptime(x, '%Y-%m-%d %H:%M:%S')
 
 
+def log(_str, file_name='eoms_auto_running.log'):
+    '''
+    输入到屏幕及文件
+    '''
+    print(_str)
+    _str = str(_str).replace('\n\n', '\n') # 优化 markdown 格式的双换行
+    with open(file_name, 'a') as f:
+        f.write(_str)
+        f.write('\n')
+
+
 def pauseAndExit(text=''):
     print(text)
     os.system('pause')
@@ -87,7 +97,7 @@ def getBrowser(exe, browser_type='chrome'):
     options = Options()
     # options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36")
     if '-w' in args:
-        options.add_argument("--window-size=1920,1050")
+        options.add_argument("--window-size=1920,3000")
         options.add_argument('--headless')
     # options.add_argument('--disable-gpu')
     # options.add_argument('blink-settings=imagesEnabled=false')
@@ -151,44 +161,6 @@ def jumpToEOMS(browser: WebDriver, version='new') -> WebDriver:
     return browser
 
 
-def getOrdersNew(browser: WebDriver, orderType='') -> list:
-    '''
-    获取推送信息 新版eoms
-    '''
-    baseSchema = {'[数据网]': 'WF4_EL_TTM_TTH_EQU',
-                  '[通知]': 'WF4_EL_TTM_TTH_NOTICE'}
-    todo_list_url = 'http://10.204.137.51/eoms/wait/?baseSchema={}#/'.format(baseSchema[orderType])
-    browser.get(todo_list_url)
-    total_element = browser.find_element(By.CSS_SELECTOR, '.ant-pagination-total-text')
-    total = re.search(r'[0-9]+', total_element.text).group()
-    todo_list = browser.find_elements(By.CSS_SELECTOR, 'table#tab tr')[1:]
-
-    # query_url = 'http://10.204.137.51/api/query/query/querylist'
-    # payload = {
-    #     "id": "wait",
-    #     "params": {
-    #         "basesummary": "[数据网]", "isfull": "1", "baseschema": "WF4_EL_TTM_TTH_EQU"
-    #     },
-    #     "sorter": {},
-    #     "pageNum": 1,
-    #     "pageSize": 200
-    # }
-    # jq = 'http://uip.ln.cmcc/_layouts/15/styles/css_4nd/js/jquery1.42.min.js'
-    # jq = 'http://10.204.137.51/bpp/common/plugin/jquery/jquery-1.9.1.min.js'
-    # jquery_str = urllib.request.urlopen(jq).read().decode()
-    # browser.execute_script(jquery_str)
-    # ajax_query = '''
-    # $.post({},{{data:{}}})
-    # '''.format(query_url, payload)
-    # resp = browser.execute_script("return " + ajax_query)
-
-    # post_data = urllib.parse.urlencode(payload).encode('utf-8')
-    # req = urllib.request.Request(url=query_url, headers=headers, data=post_data, method='POST')
-    # response = urllib.request.urlopen(req)
-    # html = response.read().decode()
-    # data = json.loads(html)
-
-
 def getOrders(browser: WebDriver, orderType='') -> list:
     '''
     获取推送信息 旧
@@ -241,7 +213,7 @@ def getOrders(browser: WebDriver, orderType='') -> list:
 
 def getOrderDetail(browser: WebDriver) -> list:
     '''
-    return [detail, alarm_origin_id] -> [list(), str()]
+    return [detail, extra] -> [list(), str()]
     '''
     alarm_desc = browser.find_element(By.ID, 'INC_Alarm_Desc').text
     base_sn = browser.find_element(By.ID, 'bpp_BaseSN').text  # 工单号
@@ -266,11 +238,13 @@ def getOrderDetail(browser: WebDriver) -> list:
     # alarm_port2 = _find(r'接口名称=(.+) ', alarm_desc)
     # alarm_port3 = _find(r'端口名称=(.+) ', alarm_desc)
     # alarm_port_desc = _find(r'别名=(.+) ', alarm_desc)
-    alarm_info = _find(r'定位信息：(.+).口备注', alarm_desc)
+    alarm_info = _find(r'定位信息：(.+).\n附加信息', alarm_desc)
     if alarm_info == '':
         alarm_info = _find(r'告警详情：\n([\s\S]+)', alarm_desc)
     elif alarm_info == '':
-        alarm_info = _find(r'告警标题:([\s\S]+)', alarm_desc)
+        alarm_info = _find(r'告警标题 = ([\s\S]+)', alarm_desc)
+    elif alarm_info == '':
+        alarm_info = alarm_desc
     alarm_info = alarm_info.replace(' ', '_').replace('](', '_').replace('\n', ' \n')  # 为了转成 markdown 美观
     # return '\n\n> '.join([alarm_title, alarm_time, alarm_info, *extra, ';']), alarm_origin_id
     return '\n> '.join([alarm_title, alarm_time, alarm_info, ';']), extra
@@ -400,6 +374,7 @@ def auto_reply_EQU(browser: WebDriver) -> list:
         # browser.find_element(By.CSS_SELECTOR, 'div.confirm button').click()
         browser.execute_script('window.showModalDialog=function(){};ActionPanel.submit();')
         print('提交回单完成')
+        time.sleep(2)
 
     def reply_or_delay(browser):
         '''
@@ -414,7 +389,7 @@ def auto_reply_EQU(browser: WebDriver) -> list:
             reply(browser)
         time.sleep(2)
 
-    num_accept, num_equ = 0, 0
+    num_accept, num_equ, num_equ2 = 0, 0, 0
     details = []  # 未上清除工单的详细信息
     extras = ['']  # U2000 查找以及发邮件所需的信息
     todo_list_url = 'http://10.204.137.51/eoms/wait/?baseSchema=WF4_EL_TTM_TTH_EQU#/'
@@ -461,7 +436,12 @@ def auto_reply_EQU(browser: WebDriver) -> list:
         _clear_time = wait.until(EC.visibility_of_element_located((By.ID, 'INC_Alarm_ClearTime'))).get_attribute('value')
         _deal_out_time = browser.find_element(By.ID, 'BaseDealOutTime').get_attribute('value')
         if _clear_time != '':
-            # 已上清除时间，正常回单或延期操作
+            # 已上清除时间，正常回单、二次回单或延期操作
+            if '质检' in browser.find_element(By.CLASS_NAME, 'basestatus').text:
+                # 二次回单
+                num_equ2 += 1
+                browser.close()
+                continue  # 本次 while 循环结束进入下一轮
             print('已上清除，正常回单或延期', end=',,')
             reply_or_delay(browser)
             num_equ += 1
@@ -505,11 +485,11 @@ def auto_reply_EQU(browser: WebDriver) -> list:
             back(browser)
             offset += 1
             browser.close()
-            print('未上清除累计：{}\r'.format(len(extra)-1), end='')
+            print('未上清除累计：{}\r'.format(len(extras)-1), end='')
         time.sleep(3)
     browser.close()
     back(browser)
-    return [num_accept, num_equ, details, extras]
+    return [num_accept, num_equ, num_equ2, details, extras]
 
 
 def batchAccept(browser: WebDriver):
@@ -587,11 +567,11 @@ def msg_text(text: str, isAtAll: bool = False, atMobiles: str = ''):
 
 
 def msg_markdown(title: str, text: str, isAtAll: bool = False, atMobiles: str = ''):
-    print('------------msg_markdown----start-----')
-    print(title)
-    print('------------title above----text below-')
-    print(text)
-    print('------------msg_markdown-----end------')
+    log('------------msg_markdown----start-----')
+    log(title)
+    log('------------title above----text below-')
+    log(text)
+    log('------------msg_markdown-----end------')
     data = {'msgtype': 'markdown', 'markdown': {'title': '', 'text': ''},
             'at': {'atMobiles': [], 'isAtAll': False}}
     data['markdown']['title'] = title
@@ -607,51 +587,62 @@ def msg_markdown(title: str, text: str, isAtAll: bool = False, atMobiles: str = 
     return json_str
 
 
+def loop(browser, inc, count, num_a, num_e2, num_e, num_n):
+    '''
+    循环体，自动回单
+    '''
+    _accept_num, _equ_num, _num_equ2, details, extras, _un_clear = 0, 0, 0, [], '', 0
+    if count % 9 == 0:
+        autoLogin(browser)
+    try:
+        back(browser)
+        jumpToEOMS(browser)
+        _notice_num = auto_reply_NOTICE(browser)
+        print()
+        _accept_num, _equ_num, _num_equ2, details, extras = auto_reply_EQU(browser)
+    except Exception as err:
+        print(err)
+    browser.switch_to.default_content()
+    # browser.quit()
+    print('* 当前时间：{}，Loop：{}'.format(datef(), count), end='')
+    count -= 1
+    num_a += _accept_num
+    num_e += _equ_num
+    num_e2 += _num_equ2
+    num_n += _notice_num
+    if count == 0:
+        msg_title = '设备故障工单'
+        if num_a > 0:
+            msg_title += '受理 {} 个。'.format(num_a)
+        if num_e > 0:
+            msg_title += '回复 {} 个。'.format(num_e)
+        if num_n > 0:
+            msg_title += '通知工单回复 {} 个。'.format(num_n)
+        if _num_equ2 > 0:
+            msg_title += '需二次回单 {} 个。'.format(_num_equ2)
+        msg_content = '### [数据网]{}\n\n> 推送时间：{}'
+        if details != []:
+            print('')
+            _un_clear = len(details)
+            msg_title += '未上清除 {} 个。'.format(_un_clear)
+            details = '\n\n'.join(details)
+            send_msg(msg_markdown('未上清除详细信息', '\n\n'.join(extras)))
+            msg_content += '\n\n#### 详细信息：\n\n {}'.format(details)
+        msg_content = msg_content.format(msg_title, datef())
+        send_msg(msg_markdown(msg_title, msg_content, True))
+        toast = ToastNotifier()
+        toast.show_toast(msg_title, msg_content, threaded=True)
+        count = 55
+        num_a, num_e, num_e2, num_n = 0, 0, 0, 0
+    t = Timer(inc, loop, (browser, inc, count, num_a, num_e, num_e2, num_n))
+    t.start()
+
+
 if __name__ == "__main__":
     ...
-    toast = ToastNotifier()
-
-    def loop(browser, inc, count, num_a, num_e, num_n):
-        _accept_num, _equ_num, details, extras, _un_clear = 0, 0, [], '', 0
-        if count % 9 == 0:
-            autoLogin(browser)
-        try:
-            back(browser)
-            jumpToEOMS(browser)
-            _notice_num = auto_reply_NOTICE(browser)
-            print()
-            _accept_num, _equ_num, details, extras = auto_reply_EQU(browser)
-            _un_clear = len(details)
-        except Exception as err:
-            print(err)
-        browser.switch_to.default_content()
-        # browser.quit()
-        print('* 当前时间：{}，Loop：{}'.format(datef(), count), end='')
-        count -= 1
-        num_a += _accept_num
-        num_e += _equ_num
-        num_n += _notice_num
-        if count == 0:
-            if details != []:
-                print('')
-                details = '\n\n'.join(details)
-                send_msg(msg_markdown('未上清除详细信息', '\n\n '.join(extras)))
-            else:
-                details = '(空)'
-            msg_title = '设备故障工单未上清除{}个，受理{}个，回复{}个。通知工单回复{}个。'
-            msg_title = msg_title.format(_un_clear, num_a, num_e, num_n, count)
-            msg_content = '### [数据网]{}\n\n> 推送时间：{}\n\n#### 详细信息：\n\n {}'
-            msg_content = msg_content.format(msg_title, datef(), details)
-            send_msg(msg_markdown(msg_title, msg_content, True))
-            toast.show_toast(msg_title, msg_content, threaded=True)
-            count = 55
-            num_a, num_e, num_n = 0, 0, 0
-        t = Timer(inc, loop, (browser, inc, count, num_a, num_e, num_n))
-        t.start()
-
     browser = getBrowser(exe)
     autoLogin(browser)
     count = 1
-    num_a, num_e, num_n = 0, 0, 0
-    loop(browser, 60, count, num_a, num_e, num_n)
+    num_a, num_e, num_e2, num_n = 0, 0, 0, 0
+    loop(browser, 60, count, num_a, num_e, num_e2, num_n)
     # exit()
