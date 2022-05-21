@@ -30,8 +30,8 @@ if ($o('BaseSummary').value.indexOf('事件') != -1 && $o('AlarmLevel').value ==
 				F("tth_region").S("农村");
 				F("ReasonType").S("数通设备");
 				F("ReasonSubType").S("传输原因");
-				F("FinishDealDesc").S("传输链路闪断造成");
-				F("DealGuomodo").S("检查线路传输质量");
+				F("FinishDealDesc").S("传输链路闪断");
+				F("DealGuomodo").S("闪断后自动恢复");
 				F("isHomeService").S("否");
 				F("fault_recover").S("彻底恢复");
 			}
@@ -88,10 +88,13 @@ if ($o('BaseSummary').value.indexOf('事件') != -1 && $o('AlarmLevel').value ==
 
 // **为方便在IE9浏览器的调试模式执行。可使用压缩版本（单行），直接复制粘贴运行
 
+// 二次回单：
+$o("bpp_Btn_T3Finish").click();setTimeout(function(){window.scrollTo(0,5000);F("answer_one").S("是");F("is_real_recover").S("是");F("ReasonType").S("数通设备");F("ReasonSubType").S("传输原因");F("FinishDealDesc").S("传输链路闪断");F("DealGuomodo").S("闪断后自动恢复");ActionPanel.submit();},1000);
+
 // 传输原因：
-window.showModalDialog=function(){};var $o=function(arg){return document.getElementById(arg);};$o("bpp_Btn_T2Finish").click();setTimeout(function(){window.scrollTo(0,5000);var _boolean=F("ClearINCTime").G()=="";if(_boolean){alert("不要回单！\n没有上清除时间，看好咯！")}	else{F("tth_region").S("农村");F("ReasonType").S("数通设备");F("ReasonSubType").S("传输原因");F("FinishDealDesc").S("传输链路闪断造成");F("DealGuomodo").S("检查线路传输质量");F("isHomeService").S("否");F("fault_recover").S("彻底恢复");ActionPanel.submit();}},1000);
-window.showModalDialog=function(){};var $o=function(arg){return document.getElementById(arg);};if ($o("BaseSummary").value.indexOf("事件") != -1 && $o("AlarmLevel").value == "三级告警") {$o("bpp_Btn_T1Finish").click();setTimeout(function(){F("DealDesc").S("已知晓");},1000);}else{$o("bpp_Btn_T2Finish").click();setTimeout(function(){window.scrollTo(0,5000);var _boolean=F("ClearINCTime").G()=="";if(_boolean){alert("不要回单！\n没有上清除时间，看好咯！")}	else{F("tth_region").S("农村");F("ReasonType").S("数通设备");F("ReasonSubType").S("传输原因");F("FinishDealDesc").S("传输链路闪断造成");F("DealGuomodo").S("检查线路传输质量");F("isHomeService").S("否");F("fault_recover").S("彻底恢复");ActionPanel.submit();}},1000);}ActionPanel.submit();
-window.showModalDialog=function(){};var $o=function(arg){return document.getElementById(arg);};if ($o("BaseSummary").value.indexOf("事件") != -1 && $o("AlarmLevel").value == "三级告警") {$o("bpp_Btn_T1Finish").click();setTimeout(function(){F("DealDesc").S("已知晓");},1000);}else{$o("bpp_Btn_T2Finish").click();setTimeout(function(){window.scrollTo(0,5000);var _boolean=F("ClearINCTime").G()=="";if(_boolean){alert("不要回单！\n没有上清除时间，看好咯！")}	else{F("tth_region").S("农村");F("ReasonType").S("数通设备");F("ReasonSubType").S("传输原因");F("FinishDealDesc").S("传输链路闪断造成");F("DealGuomodo").S("检查线路传输质量");F("isHomeService").S("否");F("fault_recover").S("彻底恢复");}},1000);}
+window.showModalDialog=function(){};var $o=function(arg){return document.getElementById(arg);};$o("bpp_Btn_T2Finish").click();setTimeout(function(){window.scrollTo(0,5000);var _boolean=F("ClearINCTime").G()=="";if(_boolean){alert("不要回单！\n没有上清除时间，看好咯！")}	else{F("tth_region").S("农村");F("ReasonType").S("数通设备");F("ReasonSubType").S("传输原因");F("FinishDealDesc").S("传输链路闪断");F("DealGuomodo").S("闪断后自动恢复");F("isHomeService").S("否");F("fault_recover").S("彻底恢复");ActionPanel.submit();}},1000);
+window.showModalDialog=function(){};var $o=function(arg){return document.getElementById(arg);};if ($o("BaseSummary").value.indexOf("事件") != -1 && $o("AlarmLevel").value == "三级告警") {$o("bpp_Btn_T1Finish").click();setTimeout(function(){F("DealDesc").S("已知晓");},1000);}else{$o("bpp_Btn_T2Finish").click();setTimeout(function(){window.scrollTo(0,5000);var _boolean=F("ClearINCTime").G()=="";if(_boolean){alert("不要回单！\n没有上清除时间，看好咯！")}	else{F("tth_region").S("农村");F("ReasonType").S("数通设备");F("ReasonSubType").S("传输原因");F("FinishDealDesc").S("传输链路闪断");F("DealGuomodo").S("闪断后自动恢复");F("isHomeService").S("否");F("fault_recover").S("彻底恢复");ActionPanel.submit();}},1000);}ActionPanel.submit();
+window.showModalDialog=function(){};var $o=function(arg){return document.getElementById(arg);};if ($o("BaseSummary").value.indexOf("事件") != -1 && $o("AlarmLevel").value == "三级告警") {$o("bpp_Btn_T1Finish").click();setTimeout(function(){F("DealDesc").S("已知晓");},1000);}else{$o("bpp_Btn_T2Finish").click();setTimeout(function(){window.scrollTo(0,5000);var _boolean=F("ClearINCTime").G()=="";if(_boolean){alert("不要回单！\n没有上清除时间，看好咯！")}	else{F("tth_region").S("农村");F("ReasonType").S("数通设备");F("ReasonSubType").S("传输原因");F("FinishDealDesc").S("传输链路闪断");F("DealGuomodo").S("闪断后自动恢复");F("isHomeService").S("否");F("fault_recover").S("彻底恢复");}},1000);}
 // 手动down：
 var $o=function(arg){return document.getElementById(arg);};$o("bpp_Btn_T2Finish").click();setTimeout(function(){window.scrollTo(0,5000);var _boolean=F("ClearINCTime").G()=="";if(_boolean){alert('不要回单！\n没有上清除时间，看好咯！')}	else{F("tth_region").S("农村");F("ReasonType").S("数通设备");F("ReasonSubType").S("其他原因");F("FinishDealDesc").S("手动down");F("DealGuomodo").S("手动down");F("isHomeService").S("是");F("fault_recover").S("彻底恢复");ActionPanel.submit();}},1000);
 // 工程遗留：

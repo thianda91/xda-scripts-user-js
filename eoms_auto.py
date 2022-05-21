@@ -71,7 +71,7 @@ def log(_str, file_name='eoms_auto_running.log'):
     输入到屏幕及文件
     '''
     print(_str)
-    _str = str(_str).replace('\n\n', '\n') # 优化 markdown 格式的双换行
+    _str = str(_str).replace('\n\n', '\n')  # 优化 markdown 格式的双换行
     with open(file_name, 'a') as f:
         f.write(_str)
         f.write('\n')
@@ -220,8 +220,8 @@ def getOrderDetail(browser: WebDriver) -> list:
     alarm_sn = browser.find_element(By.ID, 'INC_Alarm_SN').get_attribute('value')  # 告警流水号
     alarm_origin_id = browser.find_element(By.ID, 'INC_Alarm_OriAlarmId').get_property('value')  # 原始告警号
     # extra = '工单号 {}\n\n告警流水号 {}\n\n原始告警号 {}'.format(base_sn, alarm_sn, alarm_origin_id).split('\n\n')
-    _date = datetime.now().strftime("%Y-%m-%d")
-    extra = '{}\t{}\t{}\t铁岭\t城域网\t批量工单无清除时间\t{}'.format(_date, base_sn, alarm_sn, alarm_origin_id)
+    _date = datetime.now().strftime("'%Y-%m-%d %H:%M:%S")
+    extra = '{}\t{}\t{}\t铁岭\t城域网\t{}\t华为\t路由器'.format(base_sn, alarm_sn, alarm_origin_id, _date)
 
     def _find(_reg, _txt):
         try:
@@ -440,6 +440,7 @@ def auto_reply_EQU(browser: WebDriver) -> list:
             if '质检' in browser.find_element(By.CLASS_NAME, 'basestatus').text:
                 # 二次回单
                 num_equ2 += 1
+                offset += 1
                 browser.close()
                 continue  # 本次 while 循环结束进入下一轮
             print('已上清除，正常回单或延期', end=',,')
@@ -469,7 +470,7 @@ def auto_reply_EQU(browser: WebDriver) -> list:
             # 未上清除时间，且手动获取不到，获取工单详细信息
             print('未上清除，获取详情', end=',,')
             detail, extra = getOrderDetail(browser)
-            _, base_sn, _, _, _, _, alarm_origin_id = extra.split('\t')
+            base_sn, _, alarm_origin_id, _, _, _, _, _,  = extra.split('\t')
             if alarm_origin_id in get_uncleared_ids():
                 # 未上清除时间的工单若已发邮件，则可以强制回单
                 print('识别到已发邮件告知，执行强制回单：{}'.format(base_sn))
@@ -591,25 +592,25 @@ def loop(browser, inc, count, num_a, num_e2, num_e, num_n):
     '''
     循环体，自动回单
     '''
-    _accept_num, _equ_num, _num_equ2, details, extras, _un_clear = 0, 0, 0, [], '', 0
+    _num_accept, _num_equ, _num_equ2, details, extras, _un_clear = 0, 0, 0, [], '', 0
     if count % 9 == 0:
         autoLogin(browser)
     try:
         back(browser)
         jumpToEOMS(browser)
-        _notice_num = auto_reply_NOTICE(browser)
+        _num_notice = auto_reply_NOTICE(browser)
         print()
-        _accept_num, _equ_num, _num_equ2, details, extras = auto_reply_EQU(browser)
+        _num_accept, _num_equ, _num_equ2, details, extras = auto_reply_EQU(browser)
     except Exception as err:
         print(err)
     browser.switch_to.default_content()
     # browser.quit()
     print('* 当前时间：{}，Loop：{}'.format(datef(), count), end='')
     count -= 1
-    num_a += _accept_num
-    num_e += _equ_num
+    num_a += _num_accept
+    num_e += _num_equ
     num_e2 += _num_equ2
-    num_n += _notice_num
+    num_n += _num_notice
     if count == 0:
         msg_title = '设备故障工单'
         if num_a > 0:
@@ -620,15 +621,21 @@ def loop(browser, inc, count, num_a, num_e2, num_e, num_n):
             msg_title += '通知工单回复 {} 个。'.format(num_n)
         if _num_equ2 > 0:
             msg_title += '需二次回单 {} 个。'.format(_num_equ2)
-        msg_content = '### [数据网]{}\n\n> 推送时间：{}'
         if details != []:
+            # 有未上清除工单
             print('')
             _un_clear = len(details)
             msg_title += '未上清除 {} 个。'.format(_un_clear)
-            details = '\n\n'.join(details)
-            send_msg(msg_markdown('未上清除详细信息', '\n\n'.join(extras)))
-            msg_content += '\n\n#### 详细信息：\n\n {}'.format(details)
-        msg_content = msg_content.format(msg_title, datef())
+            details = '\n\n'.join(details) if _un_clear < 8 else '太多暂不显示'
+            send_msg(msg_markdown('未上清除详细信息({} 个)'.format(_un_clear), '\n\n'.join(extras)))
+            msg_content = '### [数据网]{}\n\n> 推送时间：{}\n\n#### 详细信息：\n\n {}'.format(msg_title, datef(), details)
+        elif num_a == 0 and num_e == 0 and num_n == 0 and _num_equ2 == 0:
+            # 无未上清除工单，无任何告警工单
+            msg_title += ' 暂无。'
+            msg_content = msg_title + '\n\n> ' + datef()
+        else:
+            # 无未上清除工单，有回单操作
+            msg_content = msg_title + '\n\n> ' + datef()
         send_msg(msg_markdown(msg_title, msg_content, True))
         toast = ToastNotifier()
         toast.show_toast(msg_title, msg_content, threaded=True)
